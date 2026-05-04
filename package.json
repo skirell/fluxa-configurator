@@ -1,0 +1,67 @@
+{
+	"name": "skirell-panel-fluxa-configurator",
+	"version": "1.0.0",
+	"description": "Desktop configurator for Skirell Fluxa control panel JSON files.",
+	"author": "Skirell",
+	"license": "UNLICENSED",
+	"private": true,
+	"main": "out/core/main.js",
+	"scripts": {
+		"convert:ts": "tsc",
+		"convert:assets": "npm run copy-assets",
+		"convert": "npm run convert:ts && npm run convert:assets",
+		"copy-assets": "cpx \"src/assets/**/*\" out/assets/ && cpx \"src/core/html/**/*\" out/core/html/ && cpx \"src/core/css/**/*\" out/core/css/ && cpx \"icons/**/*\" out/icons",
+		"start": "electron .",
+		"build": "npm run convert && electron-builder",
+		"build:win": "npm run convert && electron-builder --win",
+		"build:linux": "npm run convert && electron-builder --linux",
+		"build:linux:tar": "npm run convert && electron-builder --linux tar.gz",
+		"build:mac": "npm run convert && electron-builder --mac",
+		"clean": "rimraf out dist"
+	},
+	"build": {
+		"appId": "com.skirell.skirell-panel-fluxa-configurator",
+		"asar": true,
+		"files": [
+			"out/**/*",
+			"package.json",
+			"!**/*.ts",
+			"!src/**/*",
+			"!icons/**/*",
+			"!node_modules/**/*.test.*",
+			"!node_modules/**/*.d.ts",
+			"!node_modules/.bin",
+			"!__tests__"
+		],
+		"directories": {
+			"output": "dist"
+		},
+		"win": {
+			"target": "nsis",
+			"icon": "icons/win/icon.ico",
+			"legalTrademarks": "© 2025 Skirell"
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true
+		},
+		"mac": {
+			"target": "dmg",
+			"icon": "icons/mac/icon.icns"
+		},
+		"linux": {
+			"target": "AppImage",
+			"icon": "icons/linux/icon.png"
+		}
+	},
+	"devDependencies": {
+		"@types/node": "^22.18.8",
+		"@typescript-eslint/eslint-plugin": "^8.34.0",
+		"@typescript-eslint/parser": "^8.34.0",
+		"cpx": "^1.2.1",
+		"electron": "^36.7.3",
+		"electron-builder": "^26.0.12",
+		"eslint-config-prettier": "^10.1.5",
+		"eslint-plugin-prettier": "^5.4.1"
+	}
+}

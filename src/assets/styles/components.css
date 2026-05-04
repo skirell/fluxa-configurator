@@ -1,0 +1,92 @@
+/* components.css — Tabs panel */
+.tabs-panel-container {
+	border-radius: var(--radius-md);
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.tabs-panel-tabs {
+	display: flex;
+	gap: 2px;
+	overflow-x: auto;
+	padding: 0;
+}
+
+.tabs-panel-content {
+	background: var(--bg-elevated);
+	border-radius: 0 0 var(--radius-md) var(--radius-md);
+	padding: 20px;
+	border: 1px solid var(--border);
+	border-top: none;
+}
+
+.tabs-panel-tab {
+	flex: 0 1 auto;
+	min-width: 56px;
+	min-height: 36px;
+	max-height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--bg-tertiary);
+	color: var(--text-muted);
+	border: 1px solid var(--border);
+	border-bottom: none;
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition);
+	white-space: nowrap;
+	padding: 0 16px;
+}
+.tabs-panel-tab:hover {
+	color: var(--text-secondary);
+	background: var(--bg-hover);
+}
+.tabs-panel-tab.active {
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	border-color: var(--border);
+	position: relative;
+}
+.tabs-panel-tab.active::after {
+	content: '';
+	position: absolute;
+	bottom: -1px;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: var(--bg-elevated);
+}
+
+.tabs-panel-form {
+	margin-bottom: 16px;
+}
+
+.tabs-panel-buttons {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	padding-top: 14px;
+	border-top: 1px solid var(--border);
+}
+
+.tabs-panel-button {
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	padding: 6px 14px;
+	cursor: pointer;
+	transition: all var(--transition);
+	color: var(--text-secondary);
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 500;
+}
+.tabs-panel-button:hover {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+}

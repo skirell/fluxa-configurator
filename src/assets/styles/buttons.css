@@ -1,0 +1,114 @@
+/* buttons.css — Buttons */
+button {
+	font-family: inherit;
+	cursor: pointer;
+	border: none;
+	outline: none;
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 7px 14px;
+	font-size: 12px;
+	font-weight: 500;
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: all var(--transition);
+	white-space: nowrap;
+	line-height: 1.4;
+	letter-spacing: 0.01em;
+}
+
+.btn svg {
+	flex-shrink: 0;
+	opacity: 0.7;
+	width: 14px;
+	height: 14px;
+	fill: currentColor;
+}
+
+/* Ghost */
+.btn-ghost {
+	background: transparent;
+	color: var(--text-secondary);
+	border-color: var(--border-light);
+}
+.btn-ghost:hover {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+}
+
+/* Primary */
+.btn-primary {
+	background: var(--accent);
+	color: #fff;
+}
+.btn-primary:hover {
+	background: var(--accent-hover);
+}
+
+/* Success */
+.btn-success {
+	background: var(--success);
+	color: #fff;
+	padding: 10px 24px;
+	font-size: 13px;
+}
+.btn-success:hover {
+	background: var(--success-hover);
+}
+
+/* Danger ghost */
+.btn-danger {
+	color: var(--text-muted);
+	padding: 10px 24px;
+	font-size: 13px;
+}
+.btn-danger:hover {
+	color: var(--danger);
+	border-color: rgba(239, 68, 68, 0.2);
+	background: rgba(239, 68, 68, 0.06);
+}
+
+/* Icon button */
+.btn-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: all var(--transition);
+	padding: 0;
+}
+.btn-icon:hover {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+}
+
+/* Legacy compat */
+.menu-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 7px 14px;
+	font-size: 12px;
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: all var(--transition);
+}
+.menu-button:hover {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+}

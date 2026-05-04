@@ -1,0 +1,57 @@
+# Local assistant/cache files
+.claude/
+.codex/
+
+# Node.js
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Electron Builder / Forge / Packager
+/out/
+/out-misc/
+/build/
+/dist/
+/debug/
+/release/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE-specific
+/.idea/
+/.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs and debug files
+logs/
+tmp/
+temp/
+
+# Editor directories and files
+.idea/**/*
+!.idea/modules.xml
+!.idea/*.iml
+
+# Optional npm/yarn/make lockfiles
+yarn.lock
+pnpm-lock.yaml

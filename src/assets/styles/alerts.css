@@ -1,0 +1,20 @@
+/* alerts.css — Error/success messages */
+.error,
+.error-text,
+.field-error {
+	color: var(--danger);
+	font-size: 12px;
+	margin-top: 4px;
+}
+
+.success {
+	color: var(--success);
+	font-size: 12px;
+	margin-top: 4px;
+}
+
+.required-field {
+	color: var(--text-muted);
+	font-size: 11px;
+	margin-top: 2px;
+}

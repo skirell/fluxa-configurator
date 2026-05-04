@@ -1,0 +1,150 @@
+/* base.css — Variables, reset, typography */
+:root {
+	/* Dark theme (default) */
+	--bg-primary: #101012;
+	--bg-secondary: #141416;
+	--bg-tertiary: #1a1a1e;
+	--bg-elevated: #1e1e22;
+	--bg-input: #161618;
+	--bg-hover: rgba(255, 255, 255, 0.04);
+	--bg-active: rgba(255, 255, 255, 0.06);
+	--bg-surface: #18181b;
+	--bg-panel: #1a1a1e;
+
+	--border: rgba(255, 255, 255, 0.07);
+	--border-light: rgba(255, 255, 255, 0.09);
+	--border-focus: #3b82f6;
+	--border-page: rgba(255, 255, 255, 0.05);
+
+	--text-primary: #ededef;
+	--text-secondary: #8d8d93;
+	--text-muted: #505058;
+	--text-accent: #b4b4bc;
+
+	--accent: #3b82f6;
+	--accent-hover: #60a5fa;
+	--accent-muted: rgba(59, 130, 246, 0.12);
+	--accent-soft: #A6ADFF;
+
+	--success: #22c55e;
+	--success-hover: #16a34a;
+	--danger: #ef4444;
+	--danger-hover: #dc2626;
+	--warning: #f59e0b;
+
+	--scrollbar-thumb: rgba(255, 255, 255, 0.07);
+	--scrollbar-thumb-hover: rgba(255, 255, 255, 0.12);
+
+	/* Цвет «белой» части логотипа Skirell — меняется с темой */
+	--logo-fg: #ffffff;
+
+	--radius-sm: 8px;
+	--radius-md: 10px;
+	--radius-lg: 14px;
+
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+	--activity-bar-width: 48px;
+	--activity-bar-width-expanded: 160px;
+	--left-bar-w: var(--activity-bar-width-expanded);
+	--right-bar-w: var(--activity-bar-width-expanded);
+	--sidebar-width: 240px;
+	--toolbar-height: 48px;
+	--right-panel-width: 380px;
+
+	--transition: 0.15s ease;
+}
+
+/* Light theme */
+:root.theme-light {
+	--bg-primary: #ffffff;
+	--bg-secondary: #f6f6f8;
+	--bg-tertiary: #ededf0;
+	--bg-elevated: #ffffff;
+	--bg-input: #ffffff;
+	--bg-hover: rgba(0, 0, 0, 0.035);
+	--bg-active: rgba(0, 0, 0, 0.06);
+	--bg-surface: #f8f8fa;
+	--bg-panel: #ffffff;
+
+	--border: rgba(0, 0, 0, 0.08);
+	--border-light: rgba(0, 0, 0, 0.12);
+	--border-focus: #2563eb;
+	--border-page: rgba(0, 0, 0, 0.06);
+
+	--text-primary: #1a1a1e;
+	--text-secondary: #5a5a62;
+	--text-muted: #8d8d93;
+	--text-accent: #3a3a42;
+
+	--accent: #2563eb;
+	--accent-hover: #1d4ed8;
+	--accent-muted: rgba(37, 99, 235, 0.12);
+	--accent-soft: #5b64d4;
+
+	--success: #16a34a;
+	--success-hover: #15803d;
+	--danger: #dc2626;
+	--danger-hover: #b91c1c;
+	--warning: #d97706;
+
+	--scrollbar-thumb: rgba(0, 0, 0, 0.14);
+	--scrollbar-thumb-hover: rgba(0, 0, 0, 0.24);
+
+	--logo-fg: #101012;
+
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+	--shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+*, *::before, *::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html, body {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+	height: 100%;
+	font-size: 13px;
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+	overflow: hidden;
+}
+
+body {
+	display: grid;
+	grid-template-columns: var(--left-bar-w) var(--sidebar-width) minmax(410px, 1fr) auto;
+	min-height: 100vh;
+	position: relative;
+}
+
+body.left-bar-collapsed { --left-bar-w: var(--activity-bar-width); }
+body.right-bar-collapsed { --right-bar-w: var(--activity-bar-width); }
+
+h1, h2, h3 { font-weight: 600; color: var(--text-primary); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+::selection { background: var(--accent-muted); color: var(--text-primary); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+.hidden { display: none !important; }
+
+/* === Адаптация под узкие окна (минимум 1120px) === */
+@media (max-width: 1200px) {
+	:root {
+		--sidebar-width: 240px;
+		--right-panel-width: 380px;
+	}
+}
