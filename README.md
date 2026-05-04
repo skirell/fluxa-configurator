@@ -1,6 +1,8 @@
 # Skirell Fluxa Configurator
 
-Приложение для создания, редактирования, проверки и сохранения JSON-конфигураций панелей управления Skirell Fluxa.
+Приложение для создания, редактирования, проверки и сохранения JSON-конфигураций панелей управления [Skirell-Fluxa](https://skirell.ru/service/fluxa/)
+
+Документация панелей [docs-fluxa.skirell.ru](https://docs-fluxa.skirell.ru/)
 
 ## Для пользователей
 
