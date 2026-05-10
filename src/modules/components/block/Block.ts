@@ -72,8 +72,12 @@ export default class Block implements IJsonSerializable {
 				// Для optional-полей пропускаем, если значения нет;
 				// остальные сериализуем со значением по умолчанию,
 				// чтобы ключ всегда присутствовал в JSON (совместимость с валидатором панели).
-				if (field.option.optional) return;
-				value = getDefaultValueForField(field.option);
+				if (field.option.optional && field.option.fieldType !== 'lameli') return;
+				if (field.option.fieldType === 'lameli') {
+					value = null;
+				} else {
+					value = getDefaultValueForField(field.option);
+				}
 			}
 
 			if (isFieldInVariant(this.deviceVariant, key)) {
@@ -164,7 +168,11 @@ export default class Block implements IJsonSerializable {
 			const isInVariant = isFieldInVariant(this.DeviceVariant, field.key);
 
 			let value = field.getValue();
-			if (field.option.fieldType === 'feature' && value === null) {
+			if (
+				(field.option.fieldType === 'feature' ||
+					field.option.fieldType === 'lameli') &&
+				value === null
+			) {
 				// null останется null для setByPath
 			} else {
 				value = value ?? '';

@@ -40,7 +40,8 @@ export class LameliPanelField extends BaseField<Record<string, any> | null> {
 
 		const result: Record<string, any> = {};
 		for (const [key, field] of this.fields) {
-			result[key] = field.getValue() || '';
+			const value = field.getValue();
+			result[key] = value ?? '';
 		}
 
 		return result;
