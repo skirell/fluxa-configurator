@@ -549,9 +549,9 @@ export const VARIANT_PARAM_OPTIONS = new Map<
 			[
 				'currentTemp_state_topic',
 				{
-					// Может быть пустой строкой — в Java проверяется только на null.
 					label: 'currentTemp_state_topic — MQTT-топик обратной связи текущей температуры',
 					fieldType: 'text',
+					required: true,
 				},
 			],
 			[
