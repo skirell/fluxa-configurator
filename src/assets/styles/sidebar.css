@@ -203,6 +203,12 @@
 	border-color: var(--border-focus);
 	box-shadow: 0 0 0 3px var(--accent-muted);
 }
+.json-modal-error {
+	margin-top: -4px;
+	color: var(--danger);
+	font-size: 12px;
+	line-height: 1.4;
+}
 .json-modal-actions {
 	display: flex;
 	justify-content: flex-end;

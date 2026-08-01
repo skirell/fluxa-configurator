@@ -3,11 +3,12 @@ import { CHANNELS } from '../../../data/constants/channels';
 import { PLACEHOLDERS } from '../../../data/constants/placeholders';
 import { ViewId } from '../../../data/enums/view-id';
 import { getBlockIssues } from '../../../data/settings/block-rules';
-import { showConfirm } from '../../../utils/alert-utils';
+import { showChoice, showConfirm, showToast } from '../../../utils/alert-utils';
 import FeaturePanelField from '../../ui/fields/FeaturePanelField/FeaturePanelField';
 import { LameliPanelField } from '../../ui/fields/LameliPanelField';
 import blockManager from '../../managers/BlockManager/BlockManager';
 import configManager from '../../managers/ConfigManager/ConfigManager';
+import dirtyStateManager from '../../managers/DirtyStateManager/DirtyStateManager';
 import eventManager from '../../managers/EventManager/EventManager';
 import pageManager from '../../managers/PageManager/PageManager';
 import Block from '../block/Block';
@@ -241,6 +242,8 @@ const FIELD_ANCHORS: Record<string, Record<string, string>> = {
 
 type Dir = 'col' | 'row';
 interface Section { tabs: string[]; activeTab: string; }
+type ConfigIssue = { pageIdx: number; blockIdx: number; fieldKey: string; label: string };
+interface ConfigIssues { errors: ConfigIssue[]; warnings: ConfigIssue[]; }
 
 export class AppController {
 	public readonly BlockController: BlockController;
@@ -328,11 +331,11 @@ export class AppController {
 
 	private setupEventListeners(): void {
 		eventManager.on('blockSelect', (block: Block) => { blockManager.SelectedBlock = block; this.SidebarController.Renderer.render(); this.refreshErrors(); });
-		eventManager.on('blockAdded', (block: Block) => { if (block) blockManager.SelectedBlock = block; this.SidebarController.Renderer.render(); this.refreshErrors(); });
-		eventManager.on('pageAdded', () => this.render());
-		eventManager.on('deviceChanged', () => { this.SidebarController.Renderer.render(); this.refreshErrors(); });
-		eventManager.on('deviceVariantChanged', () => { this.SidebarController.Renderer.render(); this.refreshErrors(); });
-		eventManager.on('fieldChanged', () => this.refreshErrors());
+		eventManager.on('blockAdded', (block: Block) => { dirtyStateManager.markDirty(); if (block) blockManager.SelectedBlock = block; this.SidebarController.Renderer.render(); this.refreshErrors(); });
+		eventManager.on('pageAdded', () => { dirtyStateManager.markDirty(); this.render(); });
+		eventManager.on('deviceChanged', () => { dirtyStateManager.markDirty(); this.SidebarController.Renderer.render(); this.refreshErrors(); });
+		eventManager.on('deviceVariantChanged', () => { dirtyStateManager.markDirty(); this.SidebarController.Renderer.render(); this.refreshErrors(); });
+		eventManager.on('fieldChanged', () => { dirtyStateManager.markDirty(); this.refreshErrors(); });
 		eventManager.on('showFieldDocs', (fieldKey: string) => {
 			this.pendingDocsFieldKey = fieldKey;
 			this.openPanel('docs');
@@ -627,13 +630,9 @@ export class AppController {
 		document.querySelectorAll('.zone-hover').forEach(e => e.classList.remove('zone-hover'));
 	}
 
-	private refreshErrors(): void {
-		const container = document.getElementById('errors-panel-content');
-		if (!container) return;
-
-		type Issue = { pageIdx: number; blockIdx: number; fieldKey: string; label: string };
-		const errors: Issue[] = [];
-		const warnings: Issue[] = [];
+	private collectConfigIssues(): ConfigIssues {
+		const errors: ConfigIssue[] = [];
+		const warnings: ConfigIssue[] = [];
 
 		for (const page of pageManager.Pages) {
 			for (const block of page.Blocks) {
@@ -644,11 +643,10 @@ export class AppController {
 				if (block.isVariantMissing()) {
 					errors.push({ pageIdx: page.Index, blockIdx: block.Index, fieldKey: '', label: 'Подтип блока не выбран' });
 				}
+
 				const fields = block.UI.getFields();
 				const reportedAsError = new Set<string>();
 				fields.forEach(field => {
-					// Для feature / lameli панелей — разворачиваем каждое невалидное вложенное поле
-					// отдельной строкой, чтобы пользователь сразу видел, в какой вкладке и какое поле.
 					const innerErrors =
 						field instanceof FeaturePanelField || field instanceof LameliPanelField
 							? field.getInnerInvalidFields()
@@ -665,7 +663,6 @@ export class AppController {
 						}
 						reportedAsError.add(field.key);
 					} else if (field.option.required && !field.validate()) {
-						// Обычный required-чек: либо это простое поле, либо пустая required-панель без вкладок.
 						errors.push({
 							pageIdx: page.Index,
 							blockIdx: block.Index,
@@ -675,6 +672,7 @@ export class AppController {
 						reportedAsError.add(field.key);
 					}
 				});
+
 				for (const issue of getBlockIssues(block)) {
 					errors.push({
 						pageIdx: page.Index,
@@ -684,8 +682,6 @@ export class AppController {
 					});
 				}
 				for (const issue of block.loadIssues) {
-					// Не дублируем: если поле уже помечено ошибкой «обязательное не заполнено»,
-					// предупреждение об отсутствии в JSON избыточно.
 					if (issue.kind === 'missing' && reportedAsError.has(issue.fieldKey)) continue;
 					warnings.push({
 						pageIdx: page.Index,
@@ -697,9 +693,18 @@ export class AppController {
 			}
 		}
 
+		return { errors, warnings };
+	}
+
+	private refreshErrors(): void {
+		const container = document.getElementById('errors-panel-content');
+		if (!container) return;
+
+		const { errors, warnings } = this.collectConfigIssues();
+
 		// Фильтруем по области отображения: «все» или «только текущий блок».
 		const selected = blockManager.SelectedBlock;
-		const matchesCurrent = (issue: Issue) =>
+		const matchesCurrent = (issue: ConfigIssue) =>
 			!!selected &&
 			issue.pageIdx === selected.PrimaryPage.Index &&
 			issue.blockIdx === selected.Index;
@@ -787,7 +792,7 @@ export class AppController {
 
 		const warningIcon = '<svg class="error-warning-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3L2 20h20L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/><path d="M12 10v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17.5" r="0.8" fill="currentColor"/></svg>';
 
-		const appendItem = (issue: Issue, isWarning: boolean) => {
+		const appendItem = (issue: ConfigIssue, isWarning: boolean) => {
 			const item = document.createElement('div');
 			item.className = isWarning ? 'error-item error-item--warning' : 'error-item';
 			const messageHtml = isWarning ? `${warningIcon}<span>${issue.label}</span>` : issue.label;
@@ -917,6 +922,7 @@ export class AppController {
 		this.clearProject();
 		const p = pageManager.addPage();
 		if (p) { eventManager.emit('pageAdded', p); const b = p.Blocks[0]; if (b) blockManager.SelectedBlock = b; }
+		dirtyStateManager.markClean();
 	}
 
 	public async loadConfigWithConfirm(): Promise<void> {
@@ -926,27 +932,94 @@ export class AppController {
 
 	public async clearCurrentProject(): Promise<void> {
 		if (!pageManager.Pages.length) return;
-		if (!(await showConfirm('Очистить конфигурацию? Все данные будут удалены.'))) return;
+		const confirmed = await showConfirm({
+			title: 'Очистить конфигурацию?',
+			message: 'Все страницы и блоки будут удалены.',
+			confirmText: 'Очистить',
+			cancelText: 'Отмена',
+			danger: true,
+		});
+		if (!confirmed) return;
 		this.clearProject(); this.render(); this.showStartPage();
+		dirtyStateManager.markClean();
 	}
 
 	public async handleSave(): Promise<void> {
+		if (!this.ensureConfigCanBeSaved()) return;
+
 		await configManager.saveConfig();
 		this.refreshErrors();
 	}
 
-	public async confirmDiscardCurrent(): Promise<boolean> {
-		if (!pageManager.Pages.length) return true;
-
-		const wantSave = await showConfirm('Сохранить текущую конфигурацию перед продолжением?');
-		if (wantSave) {
-			const result = await configManager.saveConfig();
-			if (result === 'cancelled') return false;
-			return true;
-		} else {
-			const discard = await showConfirm('Все несохранённые данные будут потеряны. Продолжить?');
-			return discard;
+	private ensureConfigCanBeSaved(): boolean {
+		const issues = this.collectConfigIssues();
+		if (pageManager.Pages.length === 0 || pageManager.Pages.every(page => page.Blocks.length === 0)) {
+			showToast('Нет блоков для сохранения.', { type: 'warning' });
+			return false;
 		}
+		if (issues.errors.length > 0) {
+			this.showSaveBlockedMessage(issues.errors);
+			return false;
+		}
+
+		return true;
+	}
+
+	private showSaveBlockedMessage(errors: ConfigIssue[]): void {
+		this.errorsScope = 'all';
+		this.showErrorsPanel();
+
+		const shown = errors.slice(0, 4)
+			.map(issue => `Стр. ${issue.pageIdx} · Блок ${issue.blockIdx}: ${issue.label}`)
+			.join('\n');
+		const hiddenCount = errors.length - 4;
+		const more = hiddenCount > 0
+			? `\nЕще ${hiddenCount} ${this.pluralize(hiddenCount, 'ошибка', 'ошибки', 'ошибок')} в панели справа.`
+			: '\nПолный список открыт в панели справа.';
+
+		showToast(`${shown}${more}`, {
+			type: 'error',
+			title: 'Конфигурацию нельзя сохранить',
+			durationMs: 9000,
+		});
+	}
+
+	private showErrorsPanel(): void {
+		const sectionIndex = this.findSection('errors');
+		if (sectionIndex >= 0) {
+			this.sections[sectionIndex].activeTab = 'errors';
+			this.redraw();
+			setTimeout(() => this.refreshErrors(), 50);
+			return;
+		}
+
+		this.openPanel('errors');
+	}
+
+	private pluralize(n: number, one: string, few: string, many: string): string {
+		return n === 1 ? one : n >= 2 && n <= 4 ? few : many;
+	}
+
+	public async confirmDiscardCurrent(): Promise<boolean> {
+		if (!dirtyStateManager.IsDirty) return true;
+
+		const action = await showChoice<'save' | 'discard'>({
+			title: 'Есть несохраненные изменения',
+			message: 'Перед продолжением можно сохранить текущую конфигурацию.',
+			choices: [
+				{ value: 'save', label: 'Сохранить', variant: 'primary' },
+				{ value: 'discard', label: 'Не сохранять', variant: 'danger' },
+			],
+			cancelText: 'Отмена',
+		});
+
+		if (action === 'save') {
+			if (!this.ensureConfigCanBeSaved()) return false;
+			const result = await configManager.saveConfig();
+			return result === 'saved';
+		}
+
+		return action === 'discard';
 	}
 
 	private clearProject(): void { pageManager.clearPages(); blockManager.SelectedBlock = null; }

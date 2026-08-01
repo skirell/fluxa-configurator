@@ -5,8 +5,9 @@ import { Device } from '../../../data/enums/device';
 import { ViewId } from '../../../data/enums/view-id';
 import { DEVICE_OPTIONS } from '../../../data/settings/options/device-options';
 import { SerializedBlock } from '../../../global/types/block';
-import { showConfirm, showMessage } from '../../../utils/alert-utils';
+import { showConfirm, showToast } from '../../../utils/alert-utils';
 import BlockManager from '../../managers/BlockManager/BlockManager';
+import dirtyStateManager from '../../managers/DirtyStateManager/DirtyStateManager';
 import EventManager from '../../managers/EventManager/EventManager';
 import PageManager from '../../managers/PageManager/PageManager';
 import App from '../app';
@@ -33,6 +34,7 @@ interface JsonModalOptions {
 	pasteText: string;
 	saveText: string;
 	copySuccessText: string;
+	validateText?: (text: string) => string | null;
 }
 
 interface JsonModalResult {
@@ -157,9 +159,16 @@ export class SiderbarRenderer {
 
 		const deleteBtn = this.makeActionBtn('Удалить страницу', SVG.close, async (e) => {
 			e.stopPropagation();
-			const ok = await showConfirm(`Удалить страницу ${page.Index} со всеми блоками?`);
+			const ok = await showConfirm({
+				title: 'Удалить страницу?',
+				message: `Страница ${page.Index} и все ее блоки будут удалены.`,
+				confirmText: 'Удалить',
+				cancelText: 'Отмена',
+				danger: true,
+			});
 			if (!ok) return;
 			PageManager.removePage(page);
+			dirtyStateManager.markDirty();
 			if (BlockManager.SelectedBlock?.PrimaryPage === page) {
 				const first = PageManager.Pages[0];
 				BlockManager.SelectedBlock = first?.Blocks[0] ?? null;
@@ -259,9 +268,16 @@ export class SiderbarRenderer {
 
 		const deleteBtn = this.makeActionBtn('Удалить блок', SVG.closeSmall, async (e) => {
 			e.stopPropagation();
-			const ok = await showConfirm(PLACEHOLDERS.CONFIRM_DELETE);
+			const ok = await showConfirm({
+				title: 'Удалить блок?',
+				message: `Блок ${block.Index} будет удален со страницы ${page.Index}.`,
+				confirmText: 'Удалить',
+				cancelText: 'Отмена',
+				danger: true,
+			});
 			if (!ok) return;
 			page.removeBlock(block);
+			dirtyStateManager.markDirty();
 			if (BlockManager.SelectedBlock === block) {
 				const next = page.Blocks[0] ?? PageManager.Pages[0]?.Blocks[0] ?? null;
 				BlockManager.SelectedBlock = next;
@@ -381,6 +397,7 @@ export class SiderbarRenderer {
 		if (ti < 0) return;
 		pages.splice(insertBefore ? ti : ti + 1, 0, source);
 		pages.forEach((p, i) => { p.Index = i + 1; });
+		dirtyStateManager.markDirty();
 		this.render();
 	}
 
@@ -393,6 +410,7 @@ export class SiderbarRenderer {
 		if (ti < 0) return;
 		blocks.splice(insertBefore ? ti : ti + 1, 0, source);
 		blocks.forEach((b, i) => { b.Index = i + 1; });
+		dirtyStateManager.markDirty();
 		this.render();
 	}
 
@@ -447,14 +465,18 @@ export class SiderbarRenderer {
 			sourcePage.onBlockRemoved();
 		}
 
+		dirtyStateManager.markDirty();
 		this.render();
 	}
 
 	private async copyBlock(block: Block, page: Page): Promise<void> {
 		if (this.blockHasErrors(block)) {
-			const ok = await showConfirm(
-				`В блоке ${block.Index} есть незаполненные обязательные поля или ошибки. Скопировать как есть?`,
-			);
+			const ok = await showConfirm({
+				title: 'Скопировать блок с ошибками?',
+				message: `В блоке ${block.Index} есть незаполненные обязательные поля или ошибки.`,
+				confirmText: 'Скопировать',
+				cancelText: 'Отмена',
+			});
 			if (!ok) return;
 		}
 
@@ -469,6 +491,7 @@ export class SiderbarRenderer {
 			newPage.Blocks.forEach((b, i) => { b.Index = i + 1; });
 
 			BlockManager.SelectedBlock = newBlock;
+			dirtyStateManager.markDirty();
 			EventManager.emit('pageAdded', newPage);
 			return;
 		}
@@ -477,6 +500,7 @@ export class SiderbarRenderer {
 		page.Blocks.forEach((b, i) => { b.Index = i + 1; });
 
 		BlockManager.SelectedBlock = newBlock;
+		dirtyStateManager.markDirty();
 		App.Controller.render();
 	}
 
@@ -506,13 +530,14 @@ export class SiderbarRenderer {
 			pasteText: 'Вставить блок',
 			saveText: 'Сохранить блок',
 			copySuccessText: 'JSON блока скопирован в буфер обмена.',
+			validateText: text => this.validateBlockJsonText(text),
 		});
 		if (!result) return;
 
 		const parsed = this.parseJson(result.text);
 		const normalizedBlock = parsed ? this.normalizeBlockJson(parsed) : null;
 		if (!normalizedBlock) {
-			await showMessage('Ожидается JSON блока вида: {"block":1,"type":"light","data":{...}}');
+			showToast('Не удалось обработать JSON блока.', { type: 'error' });
 			return;
 		}
 
@@ -533,17 +558,18 @@ export class SiderbarRenderer {
 			pasteText: 'Вставить страницу',
 			saveText: 'Сохранить страницу',
 			copySuccessText: 'JSON страницы скопирован в буфер обмена.',
+			validateText: text => this.validatePageJsonText(text),
 		});
 		if (!result) return;
 
 		const parsed = this.parseJson(result.text);
 		const normalizedPage = parsed ? this.normalizePageJson(parsed) : null;
 		if (!normalizedPage) {
-			await showMessage('Ожидается JSON страницы вида: {"page":1,"blocks":[...]}');
+			showToast('Не удалось обработать JSON страницы.', { type: 'error' });
 			return;
 		}
 		if (normalizedPage.blocks.length > LIMITS.MAX_BLOCKS_PER_PAGE) {
-			await showMessage(`На странице может быть не больше ${LIMITS.MAX_BLOCKS_PER_PAGE} блоков.`);
+			showToast(`На странице может быть не больше ${LIMITS.MAX_BLOCKS_PER_PAGE} блоков.`, { type: 'warning' });
 			return;
 		}
 
@@ -555,10 +581,36 @@ export class SiderbarRenderer {
 		await this.savePageJson(page, normalizedPage);
 	}
 
+	private validateBlockJsonText(text: string): string | null {
+		if (!text) return 'Вставьте JSON блока.';
+
+		const parsed = this.parseJson(text);
+		if (!parsed || !this.normalizeBlockJson(parsed)) {
+			return 'Ожидается JSON блока вида: {"block":1,"type":"light","data":{...}}';
+		}
+
+		return null;
+	}
+
+	private validatePageJsonText(text: string): string | null {
+		if (!text) return 'Вставьте JSON страницы.';
+
+		const parsed = this.parseJson(text);
+		const page = parsed ? this.normalizePageJson(parsed) : null;
+		if (!page) {
+			return 'Ожидается JSON страницы вида: {"page":1,"blocks":[...]}';
+		}
+		if (page.blocks.length > LIMITS.MAX_BLOCKS_PER_PAGE) {
+			return `На странице может быть не больше ${LIMITS.MAX_BLOCKS_PER_PAGE} блоков.`;
+		}
+
+		return null;
+	}
+
 	private async insertBlockJsonAfter(block: Block, page: Page, serializedBlock: SerializedBlock): Promise<void> {
 		const blockIdx = page.Blocks.indexOf(block);
 		if (blockIdx < 0) {
-			await showMessage('Блок для вставки не найден.');
+			showToast('Блок для вставки не найден.', { type: 'error' });
 			return;
 		}
 
@@ -572,8 +624,10 @@ export class SiderbarRenderer {
 		if (!createdBlock) return;
 
 		BlockManager.SelectedBlock = createdBlock;
+		dirtyStateManager.markDirty();
 		if (targetPage === page) App.Controller.render();
 		else EventManager.emit('pageAdded', targetPage);
+		showToast('JSON блока вставлен.', { type: 'success' });
 	}
 
 	private async insertPageJsonAfter(page: Page, serializedPage: SerializedPage): Promise<void> {
@@ -585,13 +639,15 @@ export class SiderbarRenderer {
 		}
 
 		BlockManager.SelectedBlock = newPage.Blocks[0] ?? null;
+		dirtyStateManager.markDirty();
 		EventManager.emit('pageAdded', newPage);
+		showToast('JSON страницы вставлен.', { type: 'success' });
 	}
 
 	private async saveBlockJson(block: Block, page: Page, serializedBlock: SerializedBlock): Promise<void> {
 		const blockIdx = page.Blocks.indexOf(block);
 		if (blockIdx < 0) {
-			await showMessage('Блок для сохранения не найден.');
+			showToast('Блок для сохранения не найден.', { type: 'error' });
 			return;
 		}
 
@@ -600,13 +656,14 @@ export class SiderbarRenderer {
 		if (!savedBlock) {
 			page.Blocks.splice(blockIdx, 0, block);
 			page.Blocks.forEach((b, i) => { b.Index = i + 1; });
-			await showMessage('Не удалось сохранить JSON блока.');
+			showToast('Не удалось сохранить JSON блока.', { type: 'error' });
 			return;
 		}
 
 		BlockManager.SelectedBlock = savedBlock;
+		dirtyStateManager.markDirty();
 		App.Controller.render();
-		await showMessage('JSON блока сохранен.');
+		showToast('JSON блока сохранен.', { type: 'success' });
 	}
 
 	private async savePageJson(page: Page, serializedPage: SerializedPage): Promise<void> {
@@ -621,14 +678,15 @@ export class SiderbarRenderer {
 					b.PrimaryPage = page;
 					b.Index = i + 1;
 				});
-				await showMessage('Не удалось сохранить JSON страницы.');
+				showToast('Не удалось сохранить JSON страницы.', { type: 'error' });
 				return;
 			}
 		}
 
 		BlockManager.SelectedBlock = page.Blocks[0] ?? null;
+		dirtyStateManager.markDirty();
 		App.Controller.render();
-		await showMessage('JSON страницы сохранен.');
+		showToast('JSON страницы сохранен.', { type: 'success' });
 	}
 
 	private serializeBlockForJson(block: Block): SerializedBlock | null {
@@ -746,6 +804,10 @@ export class SiderbarRenderer {
 			textarea.placeholder = options.placeholder;
 			textarea.value = options.initialText;
 
+			const error = document.createElement('div');
+			error.className = 'json-modal-error';
+			error.hidden = true;
+
 			const actions = document.createElement('div');
 			actions.className = 'json-modal-actions';
 
@@ -756,12 +818,12 @@ export class SiderbarRenderer {
 			copyBtn.addEventListener('click', async () => {
 				const text = textarea.value.trim();
 				if (!text) {
-					await showMessage('В поле нет JSON для копирования.');
+					showError('В поле нет JSON для копирования.');
 					textarea.focus();
 					return;
 				}
 				clipboard.writeText(text);
-				await showMessage(options.copySuccessText);
+				showToast(options.copySuccessText, { type: 'success' });
 				textarea.focus();
 			});
 
@@ -785,22 +847,41 @@ export class SiderbarRenderer {
 				overlay.remove();
 				resolve(value);
 			};
+			const showError = (message: string) => {
+				error.textContent = message;
+				error.hidden = false;
+			};
+			const clearError = () => {
+				error.textContent = '';
+				error.hidden = true;
+			};
+			const attemptAction = (action: JsonModalAction) => {
+				const text = textarea.value.trim();
+				const validationError = options.validateText?.(text) ?? null;
+				if (validationError) {
+					showError(validationError);
+					textarea.focus();
+					return;
+				}
+				close({ action, text });
+			};
 			const onKeyDown = (e: KeyboardEvent) => {
 				if (e.key === 'Escape') close(null);
 				if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-					close({ action: 'save', text: textarea.value.trim() });
+					attemptAction('save');
 				}
 			};
 
+			textarea.addEventListener('input', clearError);
 			cancelBtn.addEventListener('click', () => close(null));
-			pasteBtn.addEventListener('click', () => close({ action: 'paste', text: textarea.value.trim() }));
-			saveBtn.addEventListener('click', () => close({ action: 'save', text: textarea.value.trim() }));
+			pasteBtn.addEventListener('click', () => attemptAction('paste'));
+			saveBtn.addEventListener('click', () => attemptAction('save'));
 			overlay.addEventListener('mousedown', e => {
 				if (e.target === overlay) close(null);
 			});
 
 			actions.append(copyBtn, pasteBtn, cancelBtn, saveBtn);
-			dialog.append(heading, textarea, actions);
+			dialog.append(heading, textarea, error, actions);
 			overlay.appendChild(dialog);
 			document.body.appendChild(overlay);
 			document.addEventListener('keydown', onKeyDown);
@@ -841,9 +922,12 @@ export class SiderbarRenderer {
 		const badBlocks = page.Blocks.filter(b => this.blockHasErrors(b));
 		if (badBlocks.length > 0) {
 			const list = badBlocks.map(b => b.Index).join(', ');
-			const ok = await showConfirm(
-				`На странице ${page.Index} есть блоки с ошибками (${list}). Скопировать страницу как есть?`,
-			);
+			const ok = await showConfirm({
+				title: 'Скопировать страницу с ошибками?',
+				message: `На странице ${page.Index} есть блоки с ошибками: ${list}.`,
+				confirmText: 'Скопировать',
+				cancelText: 'Отмена',
+			});
 			if (!ok) return;
 		}
 
@@ -865,6 +949,7 @@ export class SiderbarRenderer {
 			pages.forEach((p, i) => { p.Index = i + 1; });
 		}
 
+		dirtyStateManager.markDirty();
 		EventManager.emit('pageAdded', newPage);
 	}
 

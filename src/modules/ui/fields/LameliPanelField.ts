@@ -1,9 +1,9 @@
-import { PLACEHOLDERS } from '../../../data/constants/placeholders';
 import { ViewId } from '../../../data/enums/view-id';
 import { getLameliParamOptions } from '../../../data/settings/param-options/lameli-param-options';
 import { ParamOption } from '../../../global/types/option';
 import { showConfirm } from '../../../utils/alert-utils';
 import { createFieldInstance } from '../../../utils/field-utils';
+import dirtyStateManager from '../../managers/DirtyStateManager/DirtyStateManager';
 import EventManager from '../../managers/EventManager/EventManager';
 import BaseField from './BaseField';
 
@@ -166,16 +166,24 @@ export class LameliPanelField extends BaseField<Record<string, any> | null> {
 			this.value = {};
 		}
 		this.updateUI();
+		dirtyStateManager.markDirty();
 	}
 
 	private async disableLameli(): Promise<void> {
-		const success = await showConfirm(PLACEHOLDERS.CONFIRM_DELETE);
+		const success = await showConfirm({
+			title: 'Удалить настройки ламелей?',
+			message: 'Поля ламелей будут очищены.',
+			confirmText: 'Удалить',
+			cancelText: 'Отмена',
+			danger: true,
+		});
 		if (!success) return;
 
 		this.isEnabled = false;
 		this.value = null;
 		this.clearFields();
 		this.updateUI();
+		dirtyStateManager.markDirty();
 	}
 
 	private updateUI(): void {

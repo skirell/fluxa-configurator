@@ -1,5 +1,6 @@
-import { PLACEHOLDERS } from '../../../../data/constants/placeholders';
-import { showConfirm, showMessage } from '../../../../utils/alert-utils';
+import { Feature } from '../../../../data/enums/feature';
+import { showConfirm, showToast } from '../../../../utils/alert-utils';
+import dirtyStateManager from '../../../managers/DirtyStateManager/DirtyStateManager';
 import FeaturePanelFieldUI from './FeaturePanelFieldUI';
 
 export default class ButtonsHandler {
@@ -7,7 +8,7 @@ export default class ButtonsHandler {
 
 	public onAdd(): void {
 		if (this.UI.Tabs.length >= this.UI.featureSettings.maxCount) {
-			showMessage(`${PLACEHOLDERS.LIMIT_REACHED} вкладок!`);
+			showToast(`Можно добавить не больше ${this.UI.featureSettings.maxCount} вкладок.`, { type: 'warning' });
 			return;
 		}
 
@@ -18,50 +19,55 @@ export default class ButtonsHandler {
 		for (let i = 0; i < count; i++) this.UI.addTab();
 
 		this.UI.refreshUI();
+		dirtyStateManager.markDirty();
 	}
 
 	public onSave(): void {
 		if (this.UI.Tabs.length <= 0) {
-			showMessage('Нет режимов для сохранения.');
+			showToast('Нет вкладок для сохранения.', { type: 'warning' });
 			return;
 		}
 		if (!this.UI.SelectedTab) {
-			showMessage('Вы не выбрали режим для сохранения.');
+			showToast('Выберите вкладку для сохранения.', { type: 'warning' });
 			return;
 		}
 		if (!this.UI.SelectedTab.validateFields()) {
-			showMessage('Проверьте правильность ввода полей!');
+			showToast('Проверьте поля выбранной вкладки.', { type: 'warning' });
 			return;
 		}
 
 		this.UI.SelectedTab.save();
-
-		showMessage('Режим успешно сохранен!');
+		dirtyStateManager.markDirty();
 	}
 
 	public async onDelete(): Promise<void> {
 		if (this.UI.Tabs.length <= 0) {
-			showMessage('Нет режимов для удаления.');
+			showToast('Нет вкладок для удаления.', { type: 'warning' });
 			return;
 		}
 		if (!this.UI.SelectedTab) {
-			showMessage('Вы не выбрали режим для удаления.');
+			showToast('Выберите вкладку для удаления.', { type: 'warning' });
 			return;
 		}
 		if (
 			this.UI.option.required &&
 			this.UI.Tabs.length <= this.UI.featureSettings.minCount
 		) {
-			showMessage(
-				`Режимов не может быть меньше ${this.UI.featureSettings.minCount}!`,
-			);
+			showToast(`Нельзя оставить меньше ${this.UI.featureSettings.minCount} вкладок.`, { type: 'warning' });
 			return;
 		}
 
 		const index = this.UI.Tabs.indexOf(this.UI.SelectedTab!);
 		if (index < 0) return;
 
-		const success = await showConfirm(PLACEHOLDERS.CONFIRM_DELETE);
+		const label = this.getItemLabel();
+		const success = await showConfirm({
+			title: `Удалить ${label.toLowerCase()}?`,
+			message: `${label} ${index + 1} будет удален.`,
+			confirmText: 'Удалить',
+			cancelText: 'Отмена',
+			danger: true,
+		});
 		if (!success) return;
 
 		const featureSettings = this.UI.featureSettings;
@@ -74,5 +80,20 @@ export default class ButtonsHandler {
 
 		this.UI.SelectedTab = this.UI.Tabs[0];
 		this.UI.refreshUI();
+		dirtyStateManager.markDirty();
+	}
+
+	private getItemLabel(): string {
+		switch (this.UI.feature) {
+			case Feature.modes:
+			case Feature.fan_mode:
+				return 'Режим';
+			case Feature.sensors:
+				return 'Датчик';
+			case Feature.channels:
+				return 'Канал';
+			default:
+				return 'Вкладка';
+		}
 	}
 }

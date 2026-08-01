@@ -1,6 +1,5 @@
 import { LIMITS } from '../../../data/constants/limits';
-import { PLACEHOLDERS } from '../../../data/constants/placeholders';
-import { showMessage } from '../../../utils/alert-utils';
+import { showToast } from '../../../utils/alert-utils';
 import { renumberInstances } from '../../../utils/dom-utils';
 import EventManager from '../../managers/EventManager/EventManager';
 import Block from '../block/Block';
@@ -37,7 +36,7 @@ export class Page implements IJsonSerializable {
 
 	public addBlock(): Block | undefined {
 		if (this.Blocks.length >= LIMITS.MAX_BLOCKS_PER_PAGE) {
-			showMessage(`${PLACEHOLDERS.LIMIT_REACHED} блоков!`);
+			showToast(`На странице может быть не больше ${LIMITS.MAX_BLOCKS_PER_PAGE} блоков.`, { type: 'warning' });
 			return;
 		}
 
@@ -60,7 +59,7 @@ export class Page implements IJsonSerializable {
 	public removeBlock(block: Block): void {
 		const index = this.Blocks.indexOf(block);
 		if (index < 0) {
-			showMessage('Блок для удаления не найден!');
+			showToast('Блок для удаления не найден.', { type: 'error' });
 			return;
 		}
 

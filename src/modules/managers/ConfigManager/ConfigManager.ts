@@ -1,9 +1,10 @@
 import { ipcRenderer } from 'electron';
 import { CHANNELS } from '../../../data/constants/channels';
 import { SerializedBlock } from '../../../global/types/block';
-import { showMessage } from '../../../utils/alert-utils';
+import { showToast } from '../../../utils/alert-utils';
 import { Page } from '../../components/page/Page';
 import blockManager from '../BlockManager/BlockManager';
+import dirtyStateManager from '../DirtyStateManager/DirtyStateManager';
 import eventManager from '../EventManager/EventManager';
 import pageManager from '../PageManager/PageManager';
 import { validateConfig } from './config-validations';
@@ -37,15 +38,14 @@ class ConfigManager implements IJsonSerializable {
 				for (const page of pageManager.Pages) {
 					for (const block of page.Blocks) block.loadIssues = [];
 				}
-				showMessage('Конфигурация успешно сохранена.');
-			} else {
-				showMessage('Сохранение отменено.');
+				dirtyStateManager.markClean();
+				showToast('Конфигурация сохранена.', { type: 'success' });
 			}
 
 			return success ? 'saved' : 'cancelled';
 		} catch (err: any) {
 			console.error('Ошибка при сохранении:', err);
-			showMessage('Не удалось сохранить конфигурацию.');
+			showToast('Не удалось сохранить конфигурацию.', { type: 'error' });
 			return 'cancelled';
 		}
 	}
@@ -55,24 +55,25 @@ class ConfigManager implements IJsonSerializable {
 			const loadResult = await ipcRenderer.invoke(CHANNELS.LOAD_CONFIG_CHANNEL) as LoadConfigResult;
 			if (loadResult.status === 'cancelled') return false;
 			if (loadResult.status === 'error') {
-				showMessage('Не удалось загрузить конфигурацию.');
+				showToast('Не удалось загрузить конфигурацию.', { type: 'error' });
 				return false;
 			}
-			if (loadResult.data.trim() === '') { showMessage('Файл конфигурации пуст.'); return false; }
+			if (loadResult.data.trim() === '') { showToast('Файл конфигурации пуст.', { type: 'warning' }); return false; }
 
 			let parsedConfig: Config;
 			try { parsedConfig = JSON.parse(loadResult.data); }
-			catch { showMessage('Ошибка при разборе JSON файла.'); return false; }
+			catch { showToast('Не удалось разобрать JSON файл.', { type: 'error' }); return false; }
 
 			const validation = validateConfig(parsedConfig);
-			if (!validation.success) { showMessage(`Ошибка в конфигурации: ${validation.message}`); return false; }
+			if (!validation.success) { showToast(`Ошибка в конфигурации: ${validation.message}`, { type: 'error' }); return false; }
 
 			this.applyConfig(parsedConfig);
-			showMessage('Конфигурация успешно загружена.');
+			dirtyStateManager.markClean();
+			showToast('Конфигурация загружена.', { type: 'success' });
 			return true;
 		} catch (err: any) {
 			console.error('Ошибка при загрузке:', err);
-			showMessage('Не удалось загрузить конфигурацию.');
+			showToast('Не удалось загрузить конфигурацию.', { type: 'error' });
 			return false;
 		}
 	}
