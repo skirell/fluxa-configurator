@@ -50,7 +50,7 @@
 	--activity-bar-width-expanded: 160px;
 	--left-bar-w: var(--activity-bar-width-expanded);
 	--right-bar-w: var(--activity-bar-width-expanded);
-	--sidebar-width: 240px;
+	--sidebar-width: 280px;
 	--toolbar-height: 48px;
 	--right-panel-width: 380px;
 
@@ -144,7 +144,7 @@ a:hover { color: var(--accent-hover); }
 /* === Адаптация под узкие окна (минимум 1120px) === */
 @media (max-width: 1200px) {
 	:root {
-		--sidebar-width: 240px;
+		--sidebar-width: 280px;
 		--right-panel-width: 380px;
 	}
 }

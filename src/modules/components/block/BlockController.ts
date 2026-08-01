@@ -1,5 +1,5 @@
 import { Device, DeviceVariant } from '../../../data/enums/device';
-import { showMessage } from '../../../utils/alert-utils';
+import { showToast } from '../../../utils/alert-utils';
 import blockManager from '../../managers/BlockManager/BlockManager';
 import App from '../app';
 import Block from './Block';
@@ -21,15 +21,14 @@ export class BlockController {
 		this.View.elements.saveBlockButton.addEventListener('click', () => {
 			const block = blockManager.SelectedBlock;
 			if (!block) {
-				showMessage('Блок не выбран!');
+				showToast('Блок не выбран.', { type: 'warning' });
 				return;
 			}
 			const valid = block.validateFields();
 			if (valid) {
 				block.save();
-				showMessage('Все параметры заполнены корректно!');
 			} else {
-				showMessage('Обнаружены ошибки. Проверьте обязательные поля.');
+				showToast('Обнаружены ошибки. Проверьте обязательные поля.', { type: 'warning' });
 			}
 			AppController.render();
 		});

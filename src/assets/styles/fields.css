@@ -168,6 +168,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 	font-family: 'MDIIconFont', sans-serif;
 	font-size: 3em; line-height: 1.2;
 }
+.icon-field.icon-field--searching {
+	font-family: inherit;
+	font-size: 13px;
+	line-height: normal;
+}
 
 /* ── Icon picker (dropdown с сеткой всех MDI-иконок) ── */
 .icon-picker { position: relative; }
@@ -183,7 +188,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 	border-radius: 4px;
 	box-shadow: 0 6px 20px rgba(0,0,0,0.4);
 	flex-direction: column;
-	max-height: 340px;
+	max-height: 420px;
 	overflow: hidden;
 }
 .icon-search {
@@ -199,11 +204,95 @@ input:checked + .slider:before { transform: translateX(20px); }
 	box-sizing: border-box;
 }
 .icon-search::placeholder { color: var(--text-muted, #888); }
+.icon-strip-section,
+.icon-suggestions-section {
+	border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+	padding: 8px 10px;
+}
+.icon-section-title {
+	margin-bottom: 6px;
+	color: var(--text-muted, #888);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.icon-strip-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.icon-recent-cell {
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: var(--bg-input);
+	border: 1px solid var(--border-light);
+	border-radius: 3px;
+	color: var(--text-primary, #eee);
+	cursor: pointer;
+	font-family: 'MDIIconFont', sans-serif;
+	font-size: 20px;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.icon-recent-cell:hover {
+	border-color: var(--accent, #4a9eff);
+	background: var(--bg-hover, rgba(255,255,255,0.06));
+}
+.icon-suggestions-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 176px;
+	overflow-y: auto;
+}
+.icon-suggestion-btn {
+	width: 100%;
+	padding: 6px 8px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	color: var(--text-primary, #eee);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	text-align: left;
+	font-family: inherit;
+	font-size: 12px;
+}
+.icon-suggestion-btn:hover {
+	border-color: var(--accent, #4a9eff);
+	background: var(--bg-hover, rgba(255,255,255,0.06));
+}
+.icon-suggestion-glyph {
+	width: 24px;
+	min-width: 24px;
+	font-family: 'MDIIconFont', sans-serif;
+	font-size: 20px;
+	line-height: 1;
+	text-align: center;
+}
+.icon-suggestion-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-secondary);
+}
+.icon-suggestions-empty {
+	padding: 4px 2px;
+	color: var(--text-muted, #888);
+	font-size: 12px;
+}
 .icon-grid-scroll {
 	flex: 1;
 	overflow-y: auto;
 	padding: 6px;
-	min-height: 200px;
+	min-height: 160px;
 }
 .icon-grid-inner { position: relative; }
 .icon-cell {

@@ -2,7 +2,6 @@ import { PLACEHOLDERS } from '../../../../data/constants/placeholders';
 import { Feature } from '../../../../data/enums/feature';
 import { ViewId } from '../../../../data/enums/view-id';
 import { ParamOption } from '../../../../global/types/option';
-import { showConfirm, showMessage } from '../../../../utils/alert-utils';
 import { getFeatureParams, isFieldInFeature } from '../../../../utils/option-utils';
 import BaseField from '../BaseField';
 import FeaturePanelFieldUI from './FeaturePanelFieldUI';

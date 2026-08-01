@@ -1,8 +1,7 @@
-import { PLACEHOLDERS } from '../../../data/constants/placeholders';
 import { Device, DeviceVariant } from '../../../data/enums/device';
 import { SerializedBlock } from '../../../global/types/block';
 import { ParamOption } from '../../../global/types/option';
-import { showConfirm, showMessage } from '../../../utils/alert-utils';
+import { showConfirm, showToast } from '../../../utils/alert-utils';
 import { getDefaultValueForField } from '../../../utils/field-defaults';
 import { isLoadedValueValid } from '../../../utils/field-value-validation';
 import { getBaseParams, getVariantParams } from '../../../utils/option-utils';
@@ -10,6 +9,7 @@ import { getByPath } from '../../../utils/path-utils';
 import App from '../../components/app';
 import Block from '../../components/block/Block';
 import { Page } from '../../components/page/Page';
+import dirtyStateManager from '../DirtyStateManager/DirtyStateManager';
 
 class BlockManager {
 	private static instance: BlockManager;
@@ -33,7 +33,7 @@ class BlockManager {
 		if (value) BlockController.bindBlock(value);
 	}
 
-	public loadBlockToPage(page: Page, serializedBlock: SerializedBlock): void {
+	public loadBlockToPage(page: Page, serializedBlock: SerializedBlock): Block | undefined {
 		const block = page.addBlock();
 		if (!block) return;
 
@@ -90,6 +90,7 @@ class BlockManager {
 		if (variantParams) variantParams.forEach(applyParam);
 
 		block.UI.populateFields();
+		return block;
 	}
 
 	public addBlockToPage(page: Page): Block | undefined {
@@ -99,11 +100,18 @@ class BlockManager {
 	public async removeSelectedBlock() {
 		if (!this.selectedBlock) return;
 
-		const success = await showConfirm(PLACEHOLDERS.CONFIRM_DELETE);
+		const success = await showConfirm({
+			title: 'Удалить блок?',
+			message: `Блок ${this.selectedBlock.Index} будет удален со страницы ${this.selectedBlock.PrimaryPage.Index}.`,
+			confirmText: 'Удалить',
+			cancelText: 'Отмена',
+			danger: true,
+		});
 		if (!success) return;
 
 		const primaryPage = this.selectedBlock.PrimaryPage;
 		primaryPage.removeBlock(this.selectedBlock);
+		dirtyStateManager.markDirty();
 
         this.selectedBlock = primaryPage.Blocks[0];
 
@@ -115,16 +123,13 @@ class BlockManager {
 	public saveSelectedBlock(): void {
 		const selectedBlock = this.selectedBlock;
 		if (!selectedBlock) {
-			showMessage('Блок для сохранения не выбран!');
+			showToast('Блок для сохранения не выбран.', { type: 'warning' });
 			return;
 		}
 
 		const success = selectedBlock.save();
 		if (!success)
-			showMessage('Не удалось сохранить блок. Проверьте корректность полей.');
-		else {
-			showMessage('Блок успешно сохранен!');
-		}
+			showToast('Не удалось сохранить блок. Проверьте корректность полей.', { type: 'warning' });
 	}
 
 	public setDevice(device: Device | null): void {
