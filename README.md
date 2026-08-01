@@ -4,7 +4,7 @@
 
 Документация панелей [docs-fluxa.skirell.ru](https://docs-fluxa.skirell.ru/)
 
-Документация конфигуратора [ссылка](https://docs-fluxa.skirell.ru/nastroiki-paneli/konfiguraciya-interfeisa/skirell-konfigurator)
+Документация конфигуратора [ссылка](https://docs-fluxa.skirell.ru/latest/nastroiki-paneli/konfiguraciya-interfeisa/skirell-konfigurator/)
 
 ## Для пользователей
 

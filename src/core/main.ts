@@ -59,34 +59,6 @@ ipcMain.handle(
 );
 
 ipcMain.handle(
-	CHANNELS.SHOW_CONFIRM_CHANNEL,
-	async (_event, message: string): Promise<boolean> => {
-		return dialog
-			.showMessageBox({
-				type: 'question',
-				title: 'Подтверждение',
-				message,
-				buttons: ['Да', 'Отмена'],
-				cancelId: 1,
-				defaultId: 0,
-			})
-			.then(result => result.response === 0);
-	},
-);
-
-ipcMain.handle(
-	CHANNELS.SHOW_MESSAGE_CHANNEL,
-	async (_event, message: string): Promise<void> => {
-		await dialog.showMessageBox({
-			type: 'none',
-			title: 'Уведомление',
-			message,
-			buttons: ['OK'],
-		});
-	},
-);
-
-ipcMain.handle(
 	CHANNELS.SAVE_CONFIG_CHANNEL,
 	async (_event: IpcMainInvokeEvent, jsonData: string): Promise<boolean> => {
 		try {

@@ -1,6 +1,5 @@
 import { LIMITS } from '../../../data/constants/limits';
-import { PLACEHOLDERS } from '../../../data/constants/placeholders';
-import { showMessage } from '../../../utils/alert-utils';
+import { showToast } from '../../../utils/alert-utils';
 import { renumberInstances } from '../../../utils/dom-utils';
 import { Page } from '../../components/page/Page';
 
@@ -17,7 +16,7 @@ class PageManager {
 
 	public addPage(addFirstBlock: boolean = true): Page | undefined {
 		if (this.Pages.length >= LIMITS.MAX_PAGES) {
-			showMessage(`${PLACEHOLDERS.LIMIT_REACHED} страниц!`);
+			showToast(`Можно добавить не больше ${LIMITS.MAX_PAGES} страниц.`, { type: 'warning' });
 			return;
 		}
 
@@ -35,7 +34,7 @@ class PageManager {
 	public removePage(page: Page): void {
 		const index = this.Pages.indexOf(page);
 		if (index < 0) {
-			showMessage('Страница для удаления не найдена!');
+			showToast('Страница для удаления не найдена.', { type: 'error' });
 			return;
 		}
 
