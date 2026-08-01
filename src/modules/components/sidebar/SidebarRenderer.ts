@@ -1,8 +1,11 @@
+import { clipboard } from 'electron';
 import { LIMITS } from '../../../data/constants/limits';
 import { PLACEHOLDERS } from '../../../data/constants/placeholders';
+import { Device } from '../../../data/enums/device';
 import { ViewId } from '../../../data/enums/view-id';
 import { DEVICE_OPTIONS } from '../../../data/settings/options/device-options';
-import { showConfirm } from '../../../utils/alert-utils';
+import { SerializedBlock } from '../../../global/types/block';
+import { showConfirm, showMessage } from '../../../utils/alert-utils';
 import BlockManager from '../../managers/BlockManager/BlockManager';
 import EventManager from '../../managers/EventManager/EventManager';
 import PageManager from '../../managers/PageManager/PageManager';
@@ -17,8 +20,25 @@ const SVG = {
 	close: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
 	closeSmall: '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
 	copy: '<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M8 4V2.5A1.5 1.5 0 006.5 1h-4A1.5 1.5 0 001 2.5v4A1.5 1.5 0 002.5 8H4" stroke="currentColor" stroke-width="1.1"/></svg>',
+	json: '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 3 2.5 6.5 5 10M8 3l2.5 3.5L8 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 2.5 6 10.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>',
 	plus: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
 };
+
+type JsonModalAction = 'paste' | 'save';
+
+interface JsonModalOptions {
+	title: string;
+	initialText: string;
+	placeholder: string;
+	pasteText: string;
+	saveText: string;
+	copySuccessText: string;
+}
+
+interface JsonModalResult {
+	action: JsonModalAction;
+	text: string;
+}
 
 export class SiderbarRenderer {
 	private collapsedPages = new Set<number>();
@@ -125,9 +145,14 @@ export class SiderbarRenderer {
 		const actions = document.createElement('div');
 		actions.className = 'page-actions';
 
-		const copyBtn = this.makeActionBtn('Копировать страницу', SVG.copy, async (e) => {
+		const copyBtn = this.makeActionBtn('Дублировать страницу', SVG.copy, async (e) => {
 			e.stopPropagation();
 			await this.copyPage(page);
+		});
+
+		const jsonBtn = this.makeActionBtn('JSON страницы', SVG.json, async (e) => {
+			e.stopPropagation();
+			await this.openPageJsonModal(page);
 		});
 
 		const deleteBtn = this.makeActionBtn('Удалить страницу', SVG.close, async (e) => {
@@ -143,7 +168,7 @@ export class SiderbarRenderer {
 			App.Controller.render();
 		});
 
-		actions.append(copyBtn, deleteBtn);
+		actions.append(copyBtn, jsonBtn, deleteBtn);
 		header.append(chevron, label, count, actions);
 
 		header.addEventListener('click', (e) => {
@@ -222,9 +247,14 @@ export class SiderbarRenderer {
 		const actions = document.createElement('div');
 		actions.className = 'block-actions';
 
-		const copyBtn = this.makeActionBtn('Копировать блок', SVG.copy, async (e) => {
+		const copyBtn = this.makeActionBtn('Дублировать блок', SVG.copy, async (e) => {
 			e.stopPropagation();
 			await this.copyBlock(block, page);
+		});
+
+		const jsonBtn = this.makeActionBtn('JSON блока', SVG.json, async (e) => {
+			e.stopPropagation();
+			await this.openBlockJsonModal(block, page);
 		});
 
 		const deleteBtn = this.makeActionBtn('Удалить блок', SVG.closeSmall, async (e) => {
@@ -240,7 +270,7 @@ export class SiderbarRenderer {
 			App.Controller.render();
 		});
 
-		actions.append(copyBtn, deleteBtn);
+		actions.append(copyBtn, jsonBtn, deleteBtn);
 		li.append(handle, blockLabel, typeBadge, actions);
 
 		li.addEventListener('click', (e) => {
@@ -465,6 +495,319 @@ export class SiderbarRenderer {
 		}
 
 		return newPage;
+	}
+
+	private async openBlockJsonModal(block: Block, page: Page): Promise<void> {
+		const serializedBlock = this.serializeBlockForJson(block);
+		const result = await this.promptJson({
+			title: `JSON блока ${block.Index}`,
+			initialText: serializedBlock ? JSON.stringify(serializedBlock, null, 2) : '',
+			placeholder: '{"block":1,"type":"light","data":{...}}',
+			pasteText: 'Вставить блок',
+			saveText: 'Сохранить блок',
+			copySuccessText: 'JSON блока скопирован в буфер обмена.',
+		});
+		if (!result) return;
+
+		const parsed = this.parseJson(result.text);
+		const normalizedBlock = parsed ? this.normalizeBlockJson(parsed) : null;
+		if (!normalizedBlock) {
+			await showMessage('Ожидается JSON блока вида: {"block":1,"type":"light","data":{...}}');
+			return;
+		}
+
+		if (result.action === 'paste') {
+			await this.insertBlockJsonAfter(block, page, normalizedBlock);
+			return;
+		}
+
+		await this.saveBlockJson(block, page, normalizedBlock);
+	}
+
+	private async openPageJsonModal(page: Page): Promise<void> {
+		const serializedPage = this.serializePageForJson(page);
+		const result = await this.promptJson({
+			title: `JSON страницы ${page.Index}`,
+			initialText: serializedPage ? JSON.stringify(serializedPage, null, 2) : '',
+			placeholder: '{"page":1,"blocks":[{"block":1,"type":"light","data":{...}}]}',
+			pasteText: 'Вставить страницу',
+			saveText: 'Сохранить страницу',
+			copySuccessText: 'JSON страницы скопирован в буфер обмена.',
+		});
+		if (!result) return;
+
+		const parsed = this.parseJson(result.text);
+		const normalizedPage = parsed ? this.normalizePageJson(parsed) : null;
+		if (!normalizedPage) {
+			await showMessage('Ожидается JSON страницы вида: {"page":1,"blocks":[...]}');
+			return;
+		}
+		if (normalizedPage.blocks.length > LIMITS.MAX_BLOCKS_PER_PAGE) {
+			await showMessage(`На странице может быть не больше ${LIMITS.MAX_BLOCKS_PER_PAGE} блоков.`);
+			return;
+		}
+
+		if (result.action === 'paste') {
+			await this.insertPageJsonAfter(page, normalizedPage);
+			return;
+		}
+
+		await this.savePageJson(page, normalizedPage);
+	}
+
+	private async insertBlockJsonAfter(block: Block, page: Page, serializedBlock: SerializedBlock): Promise<void> {
+		const blockIdx = page.Blocks.indexOf(block);
+		if (blockIdx < 0) {
+			await showMessage('Блок для вставки не найден.');
+			return;
+		}
+
+		const targetPage = page.Blocks.length >= LIMITS.MAX_BLOCKS_PER_PAGE
+			? this.createPageAfter(page)
+			: page;
+		if (!targetPage) return;
+
+		const insertIdx = targetPage === page ? blockIdx + 1 : 0;
+		const createdBlock = this.insertBlockFromJson(targetPage, serializedBlock, insertIdx);
+		if (!createdBlock) return;
+
+		BlockManager.SelectedBlock = createdBlock;
+		if (targetPage === page) App.Controller.render();
+		else EventManager.emit('pageAdded', targetPage);
+	}
+
+	private async insertPageJsonAfter(page: Page, serializedPage: SerializedPage): Promise<void> {
+		const newPage = this.createPageAfter(page);
+		if (!newPage) return;
+
+		for (const serializedBlock of serializedPage.blocks) {
+			this.insertBlockFromJson(newPage, serializedBlock, newPage.Blocks.length);
+		}
+
+		BlockManager.SelectedBlock = newPage.Blocks[0] ?? null;
+		EventManager.emit('pageAdded', newPage);
+	}
+
+	private async saveBlockJson(block: Block, page: Page, serializedBlock: SerializedBlock): Promise<void> {
+		const blockIdx = page.Blocks.indexOf(block);
+		if (blockIdx < 0) {
+			await showMessage('Блок для сохранения не найден.');
+			return;
+		}
+
+		page.Blocks.splice(blockIdx, 1);
+		const savedBlock = this.insertBlockFromJson(page, serializedBlock, blockIdx);
+		if (!savedBlock) {
+			page.Blocks.splice(blockIdx, 0, block);
+			page.Blocks.forEach((b, i) => { b.Index = i + 1; });
+			await showMessage('Не удалось сохранить JSON блока.');
+			return;
+		}
+
+		BlockManager.SelectedBlock = savedBlock;
+		App.Controller.render();
+		await showMessage('JSON блока сохранен.');
+	}
+
+	private async savePageJson(page: Page, serializedPage: SerializedPage): Promise<void> {
+		const previousBlocks = page.Blocks.slice();
+		page.Blocks.splice(0);
+
+		for (const serializedBlock of serializedPage.blocks) {
+			const savedBlock = this.insertBlockFromJson(page, serializedBlock, page.Blocks.length);
+			if (!savedBlock) {
+				page.Blocks.splice(0, page.Blocks.length, ...previousBlocks);
+				page.Blocks.forEach((b, i) => {
+					b.PrimaryPage = page;
+					b.Index = i + 1;
+				});
+				await showMessage('Не удалось сохранить JSON страницы.');
+				return;
+			}
+		}
+
+		BlockManager.SelectedBlock = page.Blocks[0] ?? null;
+		App.Controller.render();
+		await showMessage('JSON страницы сохранен.');
+	}
+
+	private serializeBlockForJson(block: Block): SerializedBlock | null {
+		if (!block.Device) return null;
+
+		block.writeFieldsToData();
+		return block.toJSON();
+	}
+
+	private serializePageForJson(page: Page): SerializedPage | null {
+		const blocks: SerializedBlock[] = [];
+
+		for (const block of page.Blocks) {
+			const serializedBlock = this.serializeBlockForJson(block);
+			if (!serializedBlock) return null;
+			blocks.push(serializedBlock);
+		}
+
+		return {
+			page: page.Index,
+			blocks,
+		};
+	}
+
+	private insertBlockFromJson(page: Page, serializedBlock: SerializedBlock, insertIdx: number): Block | undefined {
+		const createdBlock = BlockManager.loadBlockToPage(page, serializedBlock);
+		if (!createdBlock) return;
+
+		const currentIdx = page.Blocks.indexOf(createdBlock);
+		if (currentIdx >= 0 && insertIdx >= 0 && insertIdx < currentIdx) {
+			page.Blocks.splice(currentIdx, 1);
+			page.Blocks.splice(insertIdx, 0, createdBlock);
+		}
+
+		page.Blocks.forEach((b, i) => { b.Index = i + 1; });
+		return createdBlock;
+	}
+
+	private parseJson(text: string): unknown | null {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return null;
+		}
+	}
+
+	private normalizeBlockJson(value: unknown): SerializedBlock | null {
+		if (!this.isPlainObject(value)) return null;
+
+		const block = value as Partial<SerializedBlock>;
+		if (!this.isKnownDevice(block.type)) return null;
+		if (!this.isPlainObject(block.data)) return null;
+
+		return {
+			block: this.normalizeIndex(block.block),
+			type: block.type,
+			data: block.data,
+		};
+	}
+
+	private normalizePageJson(value: unknown): SerializedPage | null {
+		let pageCandidate = value;
+		if (this.isPlainObject(value) && Array.isArray((value as Config).screens)) {
+			const screens = (value as Config).screens;
+			if (screens.length !== 1) return null;
+			pageCandidate = screens[0];
+		}
+		if (!this.isPlainObject(pageCandidate)) return null;
+
+		const page = pageCandidate as Partial<SerializedPage>;
+		if (!Array.isArray(page.blocks)) return null;
+
+		const blocks: SerializedBlock[] = [];
+		for (const blockCandidate of page.blocks) {
+			const block = this.normalizeBlockJson(blockCandidate);
+			if (!block) return null;
+			blocks.push(block);
+		}
+
+		return {
+			page: this.normalizeIndex(page.page),
+			blocks,
+		};
+	}
+
+	private normalizeIndex(value: unknown): number {
+		return typeof value === 'number' && Number.isFinite(value) && value > 0
+			? value
+			: 1;
+	}
+
+	private isPlainObject(value: unknown): value is Record<string, any> {
+		return typeof value === 'object' && value !== null && !Array.isArray(value);
+	}
+
+	private isKnownDevice(value: unknown): value is Device {
+		return typeof value === 'string' && (Object.values(Device) as string[]).includes(value);
+	}
+
+	private async promptJson(options: JsonModalOptions): Promise<JsonModalResult | null> {
+		return new Promise(resolve => {
+			const overlay = document.createElement('div');
+			overlay.className = 'json-modal-overlay';
+
+			const dialog = document.createElement('div');
+			dialog.className = 'json-modal';
+
+			const heading = document.createElement('h2');
+			heading.className = 'json-modal-title';
+			heading.textContent = options.title;
+
+			const textarea = document.createElement('textarea');
+			textarea.className = 'json-modal-textarea';
+			textarea.spellcheck = false;
+			textarea.placeholder = options.placeholder;
+			textarea.value = options.initialText;
+
+			const actions = document.createElement('div');
+			actions.className = 'json-modal-actions';
+
+			const copyBtn = document.createElement('button');
+			copyBtn.type = 'button';
+			copyBtn.className = 'json-modal-btn';
+			copyBtn.textContent = 'Скопировать JSON';
+			copyBtn.addEventListener('click', async () => {
+				const text = textarea.value.trim();
+				if (!text) {
+					await showMessage('В поле нет JSON для копирования.');
+					textarea.focus();
+					return;
+				}
+				clipboard.writeText(text);
+				await showMessage(options.copySuccessText);
+				textarea.focus();
+			});
+
+			const cancelBtn = document.createElement('button');
+			cancelBtn.type = 'button';
+			cancelBtn.className = 'json-modal-btn';
+			cancelBtn.textContent = 'Отмена';
+
+			const pasteBtn = document.createElement('button');
+			pasteBtn.type = 'button';
+			pasteBtn.className = 'json-modal-btn';
+			pasteBtn.textContent = options.pasteText;
+
+			const saveBtn = document.createElement('button');
+			saveBtn.type = 'button';
+			saveBtn.className = 'json-modal-btn json-modal-btn-primary';
+			saveBtn.textContent = options.saveText;
+
+			const close = (value: JsonModalResult | null) => {
+				document.removeEventListener('keydown', onKeyDown);
+				overlay.remove();
+				resolve(value);
+			};
+			const onKeyDown = (e: KeyboardEvent) => {
+				if (e.key === 'Escape') close(null);
+				if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+					close({ action: 'save', text: textarea.value.trim() });
+				}
+			};
+
+			cancelBtn.addEventListener('click', () => close(null));
+			pasteBtn.addEventListener('click', () => close({ action: 'paste', text: textarea.value.trim() }));
+			saveBtn.addEventListener('click', () => close({ action: 'save', text: textarea.value.trim() }));
+			overlay.addEventListener('mousedown', e => {
+				if (e.target === overlay) close(null);
+			});
+
+			actions.append(copyBtn, pasteBtn, cancelBtn, saveBtn);
+			dialog.append(heading, textarea, actions);
+			overlay.appendChild(dialog);
+			document.body.appendChild(overlay);
+			document.addEventListener('keydown', onKeyDown);
+
+			textarea.focus();
+			textarea.select();
+		});
 	}
 
 	private cloneBlock(source: Block, targetPage: Page): Block {

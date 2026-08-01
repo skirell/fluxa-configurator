@@ -33,7 +33,7 @@ class BlockManager {
 		if (value) BlockController.bindBlock(value);
 	}
 
-	public loadBlockToPage(page: Page, serializedBlock: SerializedBlock): void {
+	public loadBlockToPage(page: Page, serializedBlock: SerializedBlock): Block | undefined {
 		const block = page.addBlock();
 		if (!block) return;
 
@@ -90,6 +90,7 @@ class BlockManager {
 		if (variantParams) variantParams.forEach(applyParam);
 
 		block.UI.populateFields();
+		return block;
 	}
 
 	public addBlockToPage(page: Page): Block | undefined {
