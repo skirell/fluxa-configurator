@@ -172,12 +172,23 @@ export class SiderbarRenderer {
 		ul.addEventListener('dragover', (e) => {
 			if (this.dragData?.type === 'block' && this.dragData.block!.PrimaryPage !== page) {
 				e.preventDefault();
+				if (this.isPageFullForExternalBlock(this.dragData.block!, page)) {
+					ul.closest('.page-item')?.classList.add('drag-over-bottom');
+				}
+			}
+		});
+		ul.addEventListener('dragleave', (e) => {
+			const pageItem = ul.closest('.page-item');
+			const related = e.relatedTarget as Node | null;
+			if (!related || !pageItem?.contains(related)) {
+				pageItem?.classList.remove('drag-over-bottom');
 			}
 		});
 		ul.addEventListener('drop', (e) => {
 			if (this.dragData?.type === 'block' && this.dragData.block!.PrimaryPage !== page) {
 				e.preventDefault();
 				e.stopPropagation();
+				ul.closest('.page-item')?.classList.remove('drag-over-bottom');
 				this.moveBlockToPage(this.dragData.block!, page);
 			}
 		});
@@ -252,18 +263,34 @@ export class SiderbarRenderer {
 			if (this.dragData?.type === 'block' && this.dragData.block !== block) {
 				e.preventDefault();
 				e.stopPropagation();
+
+				if (this.isPageFullForExternalBlock(this.dragData.block!, page)) {
+					li.classList.remove('drag-over-top', 'drag-over-bottom');
+					li.closest('.page-item')?.classList.add('drag-over-bottom');
+					return;
+				}
+
 				const rect = li.getBoundingClientRect();
 				const mid = rect.top + rect.height / 2;
 				li.classList.remove('drag-over-top', 'drag-over-bottom');
 				li.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
 			}
 		});
-		li.addEventListener('dragleave', () => li.classList.remove('drag-over-top', 'drag-over-bottom'));
+		li.addEventListener('dragleave', (e) => {
+			li.classList.remove('drag-over-top', 'drag-over-bottom');
+
+			const pageItem = li.closest('.page-item');
+			const related = e.relatedTarget as Node | null;
+			if (!related || !pageItem?.contains(related)) {
+				pageItem?.classList.remove('drag-over-bottom');
+			}
+		});
 		li.addEventListener('drop', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			const before = li.classList.contains('drag-over-top');
 			li.classList.remove('drag-over-top', 'drag-over-bottom');
+			li.closest('.page-item')?.classList.remove('drag-over-bottom');
 			if (this.dragData?.type === 'block' && this.dragData.block !== block) {
 				const src = this.dragData.block!;
 				if (src.PrimaryPage === page) {
@@ -340,13 +367,38 @@ export class SiderbarRenderer {
 	}
 
 	private moveBlockToPageAt(source: Block, target: Block, targetPage: Page, insertBefore: boolean): void {
+		if (this.isPageFullForExternalBlock(source, targetPage)) {
+			this.moveBlockToNewPageAfter(source, targetPage);
+			return;
+		}
+
 		const ti = targetPage.Blocks.indexOf(target);
 		const insertIdx = insertBefore ? ti : ti + 1;
 		this.doMoveBlock(source, targetPage, insertIdx);
 	}
 
 	private moveBlockToPage(source: Block, targetPage: Page): void {
+		if (this.isPageFullForExternalBlock(source, targetPage)) {
+			this.moveBlockToNewPageAfter(source, targetPage);
+			return;
+		}
+
 		this.doMoveBlock(source, targetPage, targetPage.Blocks.length);
+	}
+
+	private isPageFullForExternalBlock(block: Block, targetPage: Page): boolean {
+		return (
+			block.PrimaryPage !== targetPage &&
+			targetPage.Blocks.length >= LIMITS.MAX_BLOCKS_PER_PAGE
+		);
+	}
+
+	private moveBlockToNewPageAfter(block: Block, targetPage: Page): void {
+		const newPage = this.createPageAfter(targetPage);
+		if (!newPage) return;
+
+		this.doMoveBlock(block, newPage, 0);
+		EventManager.emit('pageAdded', newPage);
 	}
 
 	private doMoveBlock(block: Block, targetPage: Page, insertIdx: number): void {
@@ -360,8 +412,6 @@ export class SiderbarRenderer {
 		targetPage.Blocks.splice(insertIdx, 0, block);
 		block.PrimaryPage = targetPage;
 		targetPage.Blocks.forEach((b, i) => { b.Index = i + 1; });
-
-		this.cascadeOverflow(targetPage);
 
 		if (sourcePage.Blocks.length === 0) {
 			sourcePage.onBlockRemoved();
@@ -381,35 +431,40 @@ export class SiderbarRenderer {
 		const newBlock = this.cloneBlock(block, page);
 		const idx = page.Blocks.indexOf(block);
 
+		if (page.Blocks.length >= LIMITS.MAX_BLOCKS_PER_PAGE) {
+			const newPage = this.createPageAfter(page);
+			if (!newPage) return;
+
+			newPage.Blocks.push(newBlock);
+			newPage.Blocks.forEach((b, i) => { b.Index = i + 1; });
+
+			BlockManager.SelectedBlock = newBlock;
+			EventManager.emit('pageAdded', newPage);
+			return;
+		}
+
 		page.Blocks.splice(idx + 1, 0, newBlock);
 		page.Blocks.forEach((b, i) => { b.Index = i + 1; });
-
-		this.cascadeOverflow(page);
 
 		BlockManager.SelectedBlock = newBlock;
 		App.Controller.render();
 	}
 
-	/** If page has >MAX blocks, pop the last one and push to next page (recursively) */
-	private cascadeOverflow(page: Page): void {
-		while (page.Blocks.length > LIMITS.MAX_BLOCKS_PER_PAGE) {
-			const overflow = page.Blocks.pop()!;
-			page.Blocks.forEach((b, i) => { b.Index = i + 1; });
+	private createPageAfter(page: Page): Page | undefined {
+		const newPage = PageManager.addPage(false);
+		if (!newPage) return;
 
-			const pages = PageManager.Pages;
-			const pageIdx = pages.indexOf(page);
-			let nextPage = pages[pageIdx + 1];
+		const pages = PageManager.Pages;
+		const fromIdx = pages.indexOf(newPage);
+		const toIdx = pages.indexOf(page) + 1;
 
-			if (!nextPage) {
-				nextPage = PageManager.addPage(false)!;
-			}
-
-			overflow.PrimaryPage = nextPage;
-			nextPage.Blocks.splice(0, 0, overflow);
-			nextPage.Blocks.forEach((b, i) => { b.Index = i + 1; });
-
-			page = nextPage;
+		if (fromIdx >= 0 && toIdx > 0 && fromIdx !== toIdx) {
+			pages.splice(fromIdx, 1);
+			pages.splice(toIdx, 0, newPage);
+			pages.forEach((p, i) => { p.Index = i + 1; });
 		}
+
+		return newPage;
 	}
 
 	private cloneBlock(source: Block, targetPage: Page): Block {
