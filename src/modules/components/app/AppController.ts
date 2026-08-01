@@ -17,11 +17,12 @@ import { SidebarController } from '../sidebar/SidebarController';
 import { AppView } from './AppView';
 
 interface PanelDef { id: string; title: string; contentHtml: string; }
-const DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru';
+const DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru/latest';
+const docsUrl = (path: string): string => `${DOCS_BASE_URL}/${path}/`;
 const PANELS: Record<string, PanelDef> = {
 	docs: { id: 'docs', title: 'Документация',
 		contentHtml: `
-			<webview id="docs-webview" class="panel-webview" src="${DOCS_BASE_URL}/konfiguraciya-paneli/obshaya-struktura-json"></webview>
+			<webview id="docs-webview" class="panel-webview" src="${docsUrl('konfiguraciya-paneli/obshaya-struktura-json')}"></webview>
 			<div id="docs-fallback" class="docs-fallback" style="display:none">
 				<svg width="40" height="40" viewBox="0 0 24 24" fill="none">
 					<path d="M12 3a9 9 0 100 18 9 9 0 000-18z" stroke="currentColor" stroke-width="1.3"/>
@@ -38,22 +39,22 @@ const PANELS: Record<string, PanelDef> = {
 };
 
 const DOCS_URLS: Record<string, string> = {
-	scene: `${DOCS_BASE_URL}/konfiguraciya-paneli/scene-scenarii`,
-	switch: `${DOCS_BASE_URL}/konfiguraciya-paneli/switch-pereklyuchatel`,
-	sensor: `${DOCS_BASE_URL}/konfiguraciya-paneli/sensor-datchik`,
-	light: `${DOCS_BASE_URL}/konfiguraciya-paneli/light-osveshenie`,
-	cover: `${DOCS_BASE_URL}/konfiguraciya-paneli/cover-shtory`,
-	climate: `${DOCS_BASE_URL}/konfiguraciya-paneli/climate-klimat`,
-	music: `${DOCS_BASE_URL}/konfiguraciya-paneli/music-muzyka`,
-	light_variant_OnOff: `${DOCS_BASE_URL}/konfiguraciya-paneli/light-osveshenie/light_variant_onoff`,
-	light_variant_dimmer: `${DOCS_BASE_URL}/konfiguraciya-paneli/light-osveshenie/light_variant_dimmer`,
-	light_variant_color: `${DOCS_BASE_URL}/konfiguraciya-paneli/light-osveshenie/light_variant_color`,
-	light_variant_temperature: `${DOCS_BASE_URL}/konfiguraciya-paneli/light-osveshenie/light_variant_temperature`,
-	cover_variant_slider: `${DOCS_BASE_URL}/konfiguraciya-paneli/cover-shtory/cover_variant_slider`,
-	cover_variant_buttons: `${DOCS_BASE_URL}/konfiguraciya-paneli/cover-shtory/cover_variant_buttons`,
-	climate_variant_cond: `${DOCS_BASE_URL}/konfiguraciya-paneli/climate-klimat/climate_variant_cond`,
-	climate_variant_thermostat: `${DOCS_BASE_URL}/konfiguraciya-paneli/climate-klimat/climate_variant_thermostat`,
-	_default: `${DOCS_BASE_URL}/konfiguraciya-paneli/obshaya-struktura-json`,
+	scene: docsUrl('konfiguraciya-paneli/scene-scenarii'),
+	switch: docsUrl('konfiguraciya-paneli/switch-pereklyuchatel'),
+	sensor: docsUrl('konfiguraciya-paneli/sensor-datchik'),
+	light: docsUrl('konfiguraciya-paneli/light-osveshenie'),
+	cover: docsUrl('konfiguraciya-paneli/cover-shtory'),
+	climate: docsUrl('konfiguraciya-paneli/climate-klimat'),
+	music: docsUrl('konfiguraciya-paneli/music-muzyka'),
+	light_variant_OnOff: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_onoff'),
+	light_variant_dimmer: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_dimmer'),
+	light_variant_color: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_color'),
+	light_variant_temperature: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_temperature'),
+	cover_variant_slider: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_slider'),
+	cover_variant_buttons: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_buttons'),
+	climate_variant_cond: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond'),
+	climate_variant_thermostat: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_thermostat'),
+	_default: docsUrl('konfiguraciya-paneli/obshaya-struktura-json'),
 };
 
 /**
