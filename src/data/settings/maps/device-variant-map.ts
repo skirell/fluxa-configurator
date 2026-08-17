@@ -15,6 +15,7 @@ export const DEVICE_VARIANT_MAP = new Map<Device, DeviceVariant[]>([
 		Device.climate,
 		[
 			DeviceVariant.climate_variant_cond,
+			DeviceVariant.climate_variant_cond_extended,
 			DeviceVariant.climate_variant_thermostat,
 		]
 	],

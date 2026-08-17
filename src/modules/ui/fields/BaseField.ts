@@ -82,10 +82,11 @@ export default abstract class BaseField<T = any> {
 	}
 
 	validate(): boolean {
-        const isEmpty =
+		const isEmpty =
             this.value === null ||
             this.value === undefined ||
             this.value === '' ||
+			(typeof this.value === 'string' && this.value.trim() === '') ||
             (Array.isArray(this.value) && this.value.length === 0);
 
         if (this.required && isEmpty) {
@@ -96,6 +97,14 @@ export default abstract class BaseField<T = any> {
         this.inputElement?.classList.remove(FieldClass.INVALID);
         return true;
     }
+
+	public setInvalidState(invalid: boolean): void {
+		this.inputElement?.classList.toggle(FieldClass.INVALID, invalid);
+	}
+
+	public dispose(): void {
+		this.listeners.splice(0, this.listeners.length);
+	}
 
 	protected refreshUI(): void {
 	}
@@ -202,7 +211,7 @@ export default abstract class BaseField<T = any> {
 		return wrapper;
 	}
 
-	private notifyChange(newValue: any): void {
+	protected notifyChange(newValue: any): void {
 		for (const listener of this.listeners) {
 			try {
 				listener(newValue);

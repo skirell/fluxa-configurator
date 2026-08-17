@@ -63,6 +63,27 @@ export const FEATURE_PARAM_OPTIONS = new Map<Feature, Map<string, ParamOption>>(
 		]),
 	],
 	[
+		Feature.fan_mode_extended,
+		new Map<string, ParamOption>([
+			[
+				'title',
+				{
+					label: 'title — название скорости вентилятора',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'payload',
+				{
+					label: 'payload — сообщение для MQTT-топиков',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+		]),
+	],
+	[
 		Feature.sensors,
 		new Map<string, ParamOption>([
 			[

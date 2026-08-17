@@ -2,6 +2,10 @@ import { PLACEHOLDERS } from '../../../../data/constants/placeholders';
 import { Feature } from '../../../../data/enums/feature';
 import { ViewId } from '../../../../data/enums/view-id';
 import { ParamOption } from '../../../../global/types/option';
+import {
+	buildOrderedFeatureKeys,
+	getOrderedFeatureRecords,
+} from '../../../../utils/feature-validation';
 import { getFeatureParams, isFieldInFeature } from '../../../../utils/option-utils';
 import BaseField from '../BaseField';
 import FeaturePanelFieldUI from './FeaturePanelFieldUI';
@@ -45,7 +49,7 @@ export default class FeaturePanelField extends FeaturePanelFieldUI {
 
 		// Берём все записи как есть — «грязные» вкладки (с пустыми обязательными полями)
 		// тоже загружаем, чтобы пользователь увидел ошибки в панели и мог их исправить.
-		const records = Object.values(record).map((tab: any) =>
+		const records = getOrderedFeatureRecords(record).map((tab: any) =>
 			tab && typeof tab === 'object'
 				? Object.fromEntries(
 					Object.entries(tab).filter(([key]) =>
@@ -67,11 +71,12 @@ export default class FeaturePanelField extends FeaturePanelFieldUI {
 
 	public getValue(): Record<string, any> | null {
 		const result: Record<string, Record<string, any>> = {};
-		const max = this.featureSettings.maxCount;
-
-		for (let i = 0; i < Math.min(this.tabs.length, max); i++) {
-			const idx = i + 1;
-			const fullKey = `${this.keyPrefix}${idx}`;
+		const outputKeys = buildOrderedFeatureKeys(
+			this.keyPrefix,
+			this.tabs.length,
+		);
+		for (let i = 0; i < this.tabs.length; i++) {
+			const fullKey = outputKeys[i];
 
 			const tab = this.tabs[i];
 			tab.save();
@@ -90,8 +95,17 @@ export default class FeaturePanelField extends FeaturePanelFieldUI {
 	}
 
 	public validate(): boolean {
-		// Required с 0 вкладок → невалидно (обычный required-check на value Map не работает).
-		if (this.required && this.tabs.length === 0) return false;
+		// Для обязательных панелей соблюдаем minCount. Для optional + minOrEmpty
+		// допустимы либо 0 вкладок, либо не меньше minCount.
+		if (this.required && this.tabs.length < this.featureSettings.minCount)
+			return false;
+		if (
+			!this.required &&
+			this.tabs.length > 0 &&
+			this.tabs.length < this.featureSettings.minCount
+		)
+			return false;
+		if (this.tabs.length > this.featureSettings.maxCount) return false;
 		let success = true;
 		this.tabs.forEach(tab => {
 			if (!tab.validateFields()) success = false;
@@ -103,14 +117,26 @@ export default class FeaturePanelField extends FeaturePanelFieldUI {
 	public getInnerInvalidFields(): InnerInvalidField[] {
 		const result: InnerInvalidField[] = [];
 		const tabLabel = this.tabLabel();
+		if (
+			(this.required && this.tabs.length < this.featureSettings.minCount) ||
+			(!this.required &&
+				this.tabs.length > 0 &&
+				this.tabs.length < this.featureSettings.minCount)
+		) {
+			result.push({
+				label: `${tabLabel}: требуется минимум ${this.featureSettings.minCount}`,
+			});
+		}
+		if (this.tabs.length > this.featureSettings.maxCount) {
+			result.push({
+				label: `${tabLabel}: допускается максимум ${this.featureSettings.maxCount}`,
+			});
+		}
 		this.tabs.forEach((tab, index) => {
-			tab.UI.generateFields();
-			tab.UI.getFields().forEach(field => {
-				if (field.option.required && !field.validate()) {
-					result.push({
-						label: `${tabLabel} ${index + 1} · поле «${field.option.label}» не заполнено`,
-					});
-				}
+			tab.getInvalidFields().forEach(field => {
+				result.push({
+					label: `${tabLabel} ${index + 1} · поле «${field.option.label}» заполнено некорректно`,
+				});
 			});
 		});
 		return result;
@@ -120,6 +146,7 @@ export default class FeaturePanelField extends FeaturePanelFieldUI {
 		switch (this.feature) {
 			case Feature.modes:
 			case Feature.fan_mode:
+			case Feature.fan_mode_extended:
 				return 'Режим';
 			case Feature.sensors:
 				return 'Датчик';

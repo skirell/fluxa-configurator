@@ -10,6 +10,7 @@ import { IconField } from '../../../modules/ui/fields/IconField';
 import { LameliPanelField } from '../../../modules/ui/fields/LameliPanelField';
 import { NumberField } from '../../../modules/ui/fields/NumberField';
 import { OptionField } from '../../../modules/ui/fields/OptionField';
+import { SettingsPanelField } from '../../../modules/ui/fields/SettingsPanelField';
 
 export const FIELD_CONSTRUCTORS_MAP: Record<
 	FieldType,
@@ -24,4 +25,5 @@ export const FIELD_CONSTRUCTORS_MAP: Record<
 	feature: FeaturePanelField,
     icon: IconField,
 	lameli: LameliPanelField,
+	settings: SettingsPanelField,
 };

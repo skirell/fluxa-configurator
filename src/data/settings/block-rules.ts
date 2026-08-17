@@ -1,5 +1,5 @@
 import { Device, DeviceVariant } from '../enums/device';
-import Block from '../../modules/components/block/Block';
+import type Block from '../../modules/components/block/Block';
 
 export interface CrossFieldIssue {
 	// поля, к которым относится проблема (первое используется для навигации по клику)
@@ -73,6 +73,39 @@ function checkNotEqualNumbers(block: Block, keyA: string, keyB: string): CrossFi
 	return [];
 }
 
+function checkInteger(block: Block, key: string): CrossFieldIssue[] {
+	const value = asNum(block, key);
+	if (value !== null && !Number.isInteger(value)) {
+		return [{
+			fieldKeys: [key],
+			message: `«${key}» должно быть целым числом`,
+		}];
+	}
+	return [];
+}
+
+function checkExtendedFanTopics(block: Block): CrossFieldIssue[] {
+	const fanModes = getValue(block, 'fan_modes');
+	const hasFanModes =
+		fanModes &&
+		typeof fanModes === 'object' &&
+		!Array.isArray(fanModes) &&
+		Object.keys(fanModes).length > 0;
+	if (!hasFanModes) return [];
+
+	const issues: CrossFieldIssue[] = [];
+	for (const key of ['fan_command_topic', 'fan_state_topic']) {
+		const value = getValue(block, key);
+		if (typeof value !== 'string' || value.trim() === '') {
+			issues.push({
+				fieldKeys: [key, 'fan_modes'],
+				message: `«${key}» обязательно при заполненном «fan_modes»`,
+			});
+		}
+	}
+	return issues;
+}
+
 /**
  * Правила валидации, которые затрагивают несколько полей сразу —
  * их нельзя выразить через `required`/`optional`/`fieldType` на одном поле.
@@ -126,6 +159,13 @@ const VARIANT_RULES: Partial<Record<DeviceVariant, BlockRule>> = {
 	[DeviceVariant.climate_variant_cond]: (block) => [
 		...checkPayloadOnOff(block),
 		...checkStrictGreater(block, 'max_target', 'min_target'),
+	],
+	[DeviceVariant.climate_variant_cond_extended]: (block) => [
+		...checkPayloadOnOff(block),
+		...checkStrictGreater(block, 'max_target', 'min_target'),
+		...checkInteger(block, 'min_target'),
+		...checkInteger(block, 'max_target'),
+		...checkExtendedFanTopics(block),
 	],
 	[DeviceVariant.cover_variant_slider]: (block) => [
 		...checkNotEqualNumbers(block, 'position_open', 'position_close'),

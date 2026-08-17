@@ -2,7 +2,9 @@ import { VALUES } from '../../../../../data/constants/values';
 import { Feature } from '../../../../../data/enums/feature';
 import { PathType } from '../../../../../data/enums/path';
 import { PATH_MAP } from '../../../../../data/settings/maps/path-map';
+import { isFeatureFieldValueValid } from '../../../../../utils/feature-validation';
 import { setByPath } from '../../../../../utils/path-utils';
+import BaseField from '../../BaseField';
 import TabUI from './TabUI';
 
 export default class Tab implements IJsonSerializable {
@@ -23,15 +25,25 @@ export default class Tab implements IJsonSerializable {
 		return this.data[fieldKey];
 	}
 
+	public dispose(): void {
+		this.UI.clearFields();
+	}
+
 	public validateFields(): boolean {
-		let allValid = true;
-
+		this.UI.generateFields();
 		const fields = this.UI.getFields();
+		let valid = true;
 		fields.forEach(field => {
-			if (!field.validate()) allValid = false;
+			if (!this.validateField(field)) valid = false;
 		});
+		return valid;
+	}
 
-		return allValid;
+	public getInvalidFields(): BaseField[] {
+		this.UI.generateFields();
+		return [...this.UI.getFields().values()].filter(
+			field => !this.validateField(field),
+		);
 	}
 
 	public save(): boolean {
@@ -54,5 +66,13 @@ export default class Tab implements IJsonSerializable {
 		return {
 			...this.data,
 		};
+	}
+
+	private validateField(field: BaseField): boolean {
+		const valid =
+			field.validate() &&
+			isFeatureFieldValueValid(field.option, field.getValue());
+		field.setInvalidState(!valid);
+		return valid;
 	}
 }

@@ -90,3 +90,70 @@
 	background: var(--bg-hover);
 	color: var(--text-primary);
 }
+
+/* Dynamic settings editor */
+.settings-panel-empty {
+	padding: 12px 0;
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+.settings-options-field {
+	padding-top: 4px;
+}
+
+.settings-options-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.settings-option-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+	gap: 8px;
+	align-items: center;
+}
+
+@media (max-width: 1450px) {
+	.settings-option-row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.settings-option-actions {
+		flex-wrap: wrap;
+	}
+}
+
+.settings-option-actions {
+	display: flex;
+	gap: 4px;
+}
+
+.settings-small-button {
+	min-width: 30px;
+	min-height: 30px;
+	padding: 4px 8px;
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	background: var(--bg-tertiary);
+	color: var(--text-secondary);
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.settings-small-button:hover:not(:disabled) {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+}
+
+.settings-small-button:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.settings-option-add {
+	align-self: flex-start;
+	margin-top: 8px;
+}

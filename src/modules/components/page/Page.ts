@@ -64,6 +64,7 @@ export class Page implements IJsonSerializable {
 		}
 
 		this.Blocks.splice(index, 1);
+		block.UI.clearFields();
 		this.renumberBlocks();
 		this.onBlockRemoved();
 	}

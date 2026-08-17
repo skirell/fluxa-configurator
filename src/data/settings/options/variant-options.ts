@@ -34,6 +34,12 @@ export const VARIANT_OPTIONS = new Map<DeviceVariant, EnumOption>([
 		},
 	],
 	[
+		DeviceVariant.climate_variant_cond_extended,
+		{
+			label: 'Расширенный кондиционер',
+		},
+	],
+	[
 		DeviceVariant.climate_variant_thermostat,
 		{
 			label: 'Термостат',
@@ -60,6 +66,7 @@ export const VARIANT_ORDER: DeviceVariant[] = [
     DeviceVariant.light_variant_color,
     DeviceVariant.light_variant_temperature,
     DeviceVariant.climate_variant_cond,
+	DeviceVariant.climate_variant_cond_extended,
     DeviceVariant.climate_variant_thermostat,
     DeviceVariant.cover_variant_slider,
 	DeviceVariant.cover_variant_buttons,

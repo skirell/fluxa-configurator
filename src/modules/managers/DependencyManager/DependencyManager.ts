@@ -12,6 +12,14 @@ export default class DependencyManager {
 		field.onChange(newValue => this.handleFieldChange(field.key, newValue));
 	}
 
+	public unregisterField(fieldKey: string): void {
+		this.fieldMap.delete(fieldKey);
+	}
+
+	public clear(): void {
+		this.fieldMap.clear();
+	}
+
 	/** Оценивает зависимости у всех зарегистрированных полей (например, после загрузки конфига) */
 	public evaluateAll(): void {
 		for (const targetField of this.fieldMap.values()) {
