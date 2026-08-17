@@ -6,6 +6,8 @@ import { ColorOption, ParamOption } from '../../../global/types/option';
 import BaseField from './BaseField';
 
 export default class ColorField extends BaseField<string> {
+	private outsideClickHandler?: (event: MouseEvent) => void;
+
 	constructor(
 		fieldKey: string,
 		option: ParamOption,
@@ -98,8 +100,7 @@ export default class ColorField extends BaseField<string> {
 	}
 
 	private selectColor(color: Color, option: ColorOption) {
-		this.value = color;
-		this.validate();
+		this.onInput(color);
 		const btn = this.rootElement.querySelector('.color-dropdown-button')!;
 		btn.innerHTML = `<div class="color-box" style="background-color:${option.color}"></div><span class="color-label">${option.label}</span>`;
 		const list = this.rootElement.querySelector(
@@ -119,10 +120,18 @@ export default class ColorField extends BaseField<string> {
 	}
 
 	private attachOutsideClick(wrapper: HTMLDivElement, list: HTMLDivElement) {
-		document.addEventListener('click', e => {
+		this.outsideClickHandler = e => {
 			if (!wrapper.contains(e.target as Node)) {
 				list.style.display = 'none';
 			}
-		});
+		};
+		document.addEventListener('click', this.outsideClickHandler);
+	}
+
+	public dispose(): void {
+		if (this.outsideClickHandler)
+			document.removeEventListener('click', this.outsideClickHandler);
+		this.outsideClickHandler = undefined;
+		super.dispose();
 	}
 }

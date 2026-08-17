@@ -11,7 +11,10 @@ import { ParamOption } from '../global/types/option';
  * такое значение нужно сбросить к пустому и показать предупреждение.
  */
 export function isLoadedValueValid(option: ParamOption, value: any): boolean {
-	if (value === null || value === undefined || value === '') return true;
+	if (value === null || value === undefined) return true;
+	if (value === '') {
+		return !['feature', 'lameli', 'settings'].includes(option.fieldType);
+	}
 
 	switch (option.fieldType) {
 		case 'color':
@@ -29,9 +32,13 @@ export function isLoadedValueValid(option: ParamOption, value: any): boolean {
 		case 'icon':
 			return typeof value === 'string';
 		case 'feature':
+			return typeof value === 'object' && !Array.isArray(value);
 		case 'lameli':
 			// вложенные структуры — проверяются отдельно при обработке
-			return typeof value === 'object';
+			return typeof value === 'object' && !Array.isArray(value);
+		case 'settings':
+			// Содержимое массива проверяет специализированное поле редактора.
+			return Array.isArray(value);
 		default:
 			return true;
 	}

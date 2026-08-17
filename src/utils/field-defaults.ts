@@ -13,6 +13,8 @@ export function getDefaultValueForField(option: ParamOption): any {
 		case 'feature':
 		case 'lameli':
 			return null;
+		case 'settings':
+			return [];
 		case 'text':
 		case 'color':
 		case 'color_type':

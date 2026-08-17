@@ -64,8 +64,14 @@ export default abstract class FeaturePanelFieldUI extends BaseField {
 	}
 
 	public clearTabs(): void {
+		this.tabs.forEach(tab => tab.dispose());
 		this.tabs.splice(0, this.tabs.length);
 		this.selectedTab = undefined;
+	}
+
+	public dispose(): void {
+		this.clearTabs();
+		super.dispose();
 	}
 
 	public refreshUI(): void {
@@ -78,6 +84,7 @@ export default abstract class FeaturePanelFieldUI extends BaseField {
         switch (this.feature) {
             case Feature.modes:
             case Feature.fan_mode:
+			case Feature.fan_mode_extended:
                 return 'Режим';
             case Feature.sensors:
                 return 'Датчик';

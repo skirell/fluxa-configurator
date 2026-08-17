@@ -1,4 +1,5 @@
 import { Device, DeviceVariant } from '../../../data/enums/device';
+import { DEVICE_VARIANT_MAP } from '../../../data/settings/maps/device-variant-map';
 import { SerializedBlock } from '../../../global/types/block';
 import { ParamOption } from '../../../global/types/option';
 import { showConfirm, showToast } from '../../../utils/alert-utils';
@@ -41,7 +42,11 @@ class BlockManager {
 
 		const rawVariantType = serializedBlock.data.variant_type;
 		const knownVariants = Object.values(DeviceVariant) as string[];
-		const variantIsKnown = !rawVariantType || knownVariants.includes(rawVariantType);
+		const allowedVariants = DEVICE_VARIANT_MAP.get(block.Device) ?? [];
+		const variantIsKnown =
+			!rawVariantType ||
+			(knownVariants.includes(rawVariantType) &&
+				allowedVariants.includes(rawVariantType as DeviceVariant));
 		block.DeviceVariant = variantIsKnown
 			? ((rawVariantType ?? null) as DeviceVariant | null)
 			: null;
@@ -51,7 +56,7 @@ class BlockManager {
 			block.loadIssues.push({
 				fieldKey: 'variant_type',
 				kind: 'invalid',
-				message: `недопустимое значение variant_type «${rawVariantType}» — подтип сброшен`,
+				message: `недопустимый variant_type «${rawVariantType}» для type «${block.Device}» — подтип сброшен`,
 			});
 		}
 
@@ -140,6 +145,9 @@ class BlockManager {
 
 	public setDeviceVariant(deviceVariant: DeviceVariant | null): void {
 		if (!this.SelectedBlock) return;
+		// Базовые значения пользователь мог ещё не сохранить. Перед пересозданием
+		// полей переносим их в модель; старый variant затем сбрасывается сеттером.
+		this.SelectedBlock.writeFieldsToData();
 		this.SelectedBlock.DeviceVariant = deviceVariant;
 	}
 }

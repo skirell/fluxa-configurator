@@ -39,10 +39,14 @@ class PageManager {
 		}
 
 		this.Pages.splice(index, 1);
+		page.Blocks.forEach(block => block.UI.clearFields());
 		this.renumberPages();
 	}
 
 	public clearPages(): void {
+		this.Pages.forEach(page =>
+			page.Blocks.forEach(block => block.UI.clearFields()),
+		);
 		this.Pages.splice(0);
 	}
 

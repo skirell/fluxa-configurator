@@ -340,6 +340,76 @@ export const BASE_PARAM_OPTIONS = new Map<Device, Map<string, ParamOption>>([
 		]),
 	],
 	[
+		Device.device,
+		new Map<string, ParamOption>([
+			[
+				'param_1',
+				{
+					label: 'param_1 — Маленький текст',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'param_2',
+				{
+					label: 'param_2 — Средний текст',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'param_3',
+				{
+					label: 'param_3 — Большой текст или начальное состояние',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'setting_name',
+				{
+					label: 'setting_name — Заголовок страницы управления',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'icon',
+				{
+					label: 'icon — Иконка блока',
+					fieldType: 'icon',
+					placeholder: '',
+					required: true,
+				},
+			],
+			[
+				'color',
+				{
+					label: 'color — Постоянный цвет блока',
+					fieldType: 'color',
+					required: true,
+				},
+			],
+			[
+				'state_topic',
+				{
+					label: 'state_topic — MQTT-топик состояния для param_3',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'settings',
+				{
+					label: 'settings — Дополнительные элементы управления',
+					fieldType: 'settings',
+					required: true,
+				},
+			],
+		]),
+	],
+	[
 		Device.music,
 		new Map<string, ParamOption>([
 			[

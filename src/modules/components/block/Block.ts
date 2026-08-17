@@ -2,6 +2,7 @@ import { VALUES } from '../../../data/constants/values';
 import { Device, DeviceVariant } from '../../../data/enums/device';
 import { PathType } from '../../../data/enums/path';
 import { DEVICE_VARIANT_MAP } from '../../../data/settings/maps/device-variant-map';
+import { getBlockIssues } from '../../../data/settings/block-rules';
 import { PATH_MAP } from '../../../data/settings/maps/path-map';
 import { BlockData, SerializedBlock } from '../../../global/types/block';
 import { getDefaultValueForField } from '../../../utils/field-defaults';
@@ -39,6 +40,7 @@ export default class Block implements IJsonSerializable {
 		this.device = value;
 		this.data = {};
 		this.loadIssues = [];
+		this.UI.clearFields();
 	}
 	public get Device(): typeof this.device {
 		return this.device;
@@ -48,6 +50,7 @@ export default class Block implements IJsonSerializable {
 		this.deviceVariant = value;
 		this.data.variant = {};
 		this.loadIssues = [];
+		this.UI.clearFields();
 	}
 	public get DeviceVariant(): typeof this.deviceVariant {
 		return this.deviceVariant;
@@ -68,11 +71,20 @@ export default class Block implements IJsonSerializable {
 			const key = field.key;
 			let value = this.getParam(key);
 
+			// Optional-ключи с пустым скалярным значением можно полностью опустить.
+			// Это нужно, в частности, для fan-топиков extended climate без fan_modes.
+			if (field.option.optional && value === '') return;
+			if (
+				field.option.optional &&
+				field.option.fieldType !== 'lameli' &&
+				(value === undefined || value === null)
+			)
+				return;
+
 			if (value === undefined || value === null) {
 				// Для optional-полей пропускаем, если значения нет;
 				// остальные сериализуем со значением по умолчанию,
 				// чтобы ключ всегда присутствовал в JSON (совместимость с валидатором панели).
-				if (field.option.optional && field.option.fieldType !== 'lameli') return;
 				if (field.option.fieldType === 'lameli') {
 					value = null;
 				} else {
@@ -133,6 +145,13 @@ export default class Block implements IJsonSerializable {
 		fields.forEach(field => {
 			if (!field.validate()) allValid = false;
 		});
+
+		const crossFieldIssues = getBlockIssues(this);
+		for (const issue of crossFieldIssues) {
+			allValid = false;
+			for (const fieldKey of issue.fieldKeys)
+				fields.get(fieldKey)?.setInvalidState(true);
+		}
 
 		return allValid;
 	}

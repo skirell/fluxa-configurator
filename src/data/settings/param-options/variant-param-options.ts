@@ -620,6 +620,152 @@ export const VARIANT_PARAM_OPTIONS = new Map<
 		]),
 	],
 	[
+		DeviceVariant.climate_variant_cond_extended,
+		new Map<string, ParamOption>([
+			[
+				'OnOff_command_topic',
+				{
+					label: 'OnOff_command_topic — Командный MQTT-топик питания',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'OnOff_state_topic',
+				{
+					label: 'OnOff_state_topic — MQTT-топик состояния питания',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'payload_on',
+				{
+					label: 'payload_on — Команда включения',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'payload_off',
+				{
+					label: 'payload_off — Команда выключения',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'mode_command_topic',
+				{
+					label: 'mode_command_topic — MQTT-топик команды основного режима',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'mode_state_topic',
+				{
+					label: 'mode_state_topic — MQTT-топик текущего основного режима',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'modes',
+				{
+					label: 'modes — Основные режимы работы',
+					fieldType: 'feature',
+					feature: Feature.modes,
+					featurePanelSettings: {
+						maxCount: 5,
+						minCount: 2,
+					},
+					required: true,
+				},
+			],
+			[
+				'currentTemp_state_topic',
+				{
+					label: 'currentTemp_state_topic — MQTT-топик текущей температуры',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'targetTemp_command_topic',
+				{
+					label: 'targetTemp_command_topic — MQTT-топик команды уставки',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'targetTemp_state_topic',
+				{
+					label: 'targetTemp_state_topic — MQTT-топик текущей уставки',
+					fieldType: 'text',
+					required: true,
+				},
+			],
+			[
+				'min_target',
+				{
+					label: 'min_target — Минимальное целое значение уставки',
+					fieldType: 'number',
+					fieldSettings: { step: 1 },
+					required: true,
+				},
+			],
+			[
+				'max_target',
+				{
+					label: 'max_target — Максимальное целое значение уставки',
+					fieldType: 'number',
+					fieldSettings: { step: 1 },
+					required: true,
+				},
+			],
+			[
+				'fan_command_topic',
+				{
+					label: 'fan_command_topic — MQTT-топик команды скорости вентилятора',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'fan_state_topic',
+				{
+					label: 'fan_state_topic — MQTT-топик текущей скорости вентилятора',
+					fieldType: 'text',
+					optional: true,
+				},
+			],
+			[
+				'fan_modes',
+				{
+					label: 'fan_modes — Скорости вентилятора',
+					fieldType: 'feature',
+					feature: Feature.fan_mode_extended,
+					featurePanelSettings: {
+						maxCount: Number.MAX_SAFE_INTEGER,
+						minCount: 2,
+						minOrEmpty: true,
+					},
+					optional: true,
+				},
+			],
+			[
+				'settings',
+				{
+					label: 'settings — Дополнительные элементы управления',
+					fieldType: 'settings',
+					required: true,
+				},
+			],
+		]),
+	],
+	[
 		DeviceVariant.climate_variant_thermostat,
 		new Map<string, ParamOption>([
 			[

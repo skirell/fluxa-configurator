@@ -21,7 +21,9 @@ export default abstract class FieldsManager {
 
 	/** Очищает все поля */
 	public clearFields(): void {
+		this.fields.forEach(field => field.dispose());
 		this.fields.clear();
+		this.dependencyManager.clear();
 	}
 
 	/** Синхронизировать набор полей с новыми опциями */
@@ -54,7 +56,11 @@ export default abstract class FieldsManager {
 	/** Удаляем «лишние» поля, которых больше нет в опциях */
 	private removeUnwantedFields(desired: Set<string>) {
 		for (const key of this.fields.keys()) {
-			if (!desired.has(key)) this.fields.delete(key);
+			if (!desired.has(key)) {
+				this.fields.get(key)?.dispose();
+				this.fields.delete(key);
+				this.dependencyManager.unregisterField(key);
+			}
 		}
 	}
 

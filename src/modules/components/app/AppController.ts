@@ -6,6 +6,7 @@ import { getBlockIssues } from '../../../data/settings/block-rules';
 import { showChoice, showConfirm, showToast } from '../../../utils/alert-utils';
 import FeaturePanelField from '../../ui/fields/FeaturePanelField/FeaturePanelField';
 import { LameliPanelField } from '../../ui/fields/LameliPanelField';
+import { SettingsPanelField } from '../../ui/fields/SettingsPanelField';
 import blockManager from '../../managers/BlockManager/BlockManager';
 import configManager from '../../managers/ConfigManager/ConfigManager';
 import dirtyStateManager from '../../managers/DirtyStateManager/DirtyStateManager';
@@ -20,6 +21,11 @@ import { AppView } from './AppView';
 interface PanelDef { id: string; title: string; contentHtml: string; }
 const DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru/latest';
 const docsUrl = (path: string): string => `${DOCS_BASE_URL}/${path}/`;
+const BETA_DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru/beta';
+const betaDocsUrl = (path: string): string => `${BETA_DOCS_BASE_URL}/${path}/`;
+const SETTINGS_DOCS_URL = betaDocsUrl(
+	'konfiguraciya-paneli/dopolnitelnye-nastroiki',
+);
 const PANELS: Record<string, PanelDef> = {
 	docs: { id: 'docs', title: 'Документация',
 		contentHtml: `
@@ -47,6 +53,7 @@ const DOCS_URLS: Record<string, string> = {
 	cover: docsUrl('konfiguraciya-paneli/cover-shtory'),
 	climate: docsUrl('konfiguraciya-paneli/climate-klimat'),
 	music: docsUrl('konfiguraciya-paneli/music-muzyka'),
+	device: betaDocsUrl('konfiguraciya-paneli/device-universalnoe-ustroistvo'),
 	light_variant_OnOff: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_onoff'),
 	light_variant_dimmer: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_dimmer'),
 	light_variant_color: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_color'),
@@ -54,6 +61,7 @@ const DOCS_URLS: Record<string, string> = {
 	cover_variant_slider: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_slider'),
 	cover_variant_buttons: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_buttons'),
 	climate_variant_cond: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond'),
+	climate_variant_cond_extended: betaDocsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond_extended'),
 	climate_variant_thermostat: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_thermostat'),
 	_default: docsUrl('konfiguraciya-paneli/obshaya-struktura-json'),
 };
@@ -238,11 +246,49 @@ const FIELD_ANCHORS: Record<string, Record<string, string>> = {
 		volume_min: 'volume_min',
 		volume_max: 'volume_max',
 	},
+	device: {
+		param_1: 'param_1',
+		param_2: 'param_2',
+		param_3: 'param_3',
+		setting_name: 'setting_name',
+		icon: 'icon',
+		color: 'color',
+		state_topic: 'state_topic-mqtt-',
+		settings: 'settings',
+	},
+	climate_variant_cond_extended: {
+		OnOff_command_topic: 'onoff_command_topic',
+		OnOff_state_topic: 'onoff_state_topic',
+		payload_on: 'payload_on',
+		payload_off: 'payload_off',
+		mode_command_topic: 'mode_command_topic',
+		mode_state_topic: 'mode_state_topic',
+		modes: 'modes',
+		currentTemp_state_topic: 'currenttemp_state_topic',
+		targetTemp_command_topic: 'targettemp_command_topic',
+		targetTemp_state_topic: 'targettemp_state_topic',
+		min_target: 'min_target',
+		max_target: 'max_target',
+		fan_command_topic: 'fan_command_topic',
+		fan_state_topic: 'fan_state_topic',
+		fan_modes: 'fan_modes',
+		settings: 'settings',
+	},
 };
 
 type Dir = 'col' | 'row';
 interface Section { tabs: string[]; activeTab: string; }
-type ConfigIssue = { pageIdx: number; blockIdx: number; fieldKey: string; label: string };
+type ConfigIssue = {
+	pageIdx: number;
+	blockIdx: number;
+	fieldKey: string;
+	label: string;
+	settingsLocation?: {
+		itemIndex: number;
+		fieldKey: string;
+		optionIndex?: number;
+	};
+};
 interface ConfigIssues { errors: ConfigIssue[]; warnings: ConfigIssue[]; }
 
 export class AppController {
@@ -648,17 +694,31 @@ export class AppController {
 				const reportedAsError = new Set<string>();
 				fields.forEach(field => {
 					const innerErrors =
-						field instanceof FeaturePanelField || field instanceof LameliPanelField
+						field instanceof FeaturePanelField ||
+						field instanceof LameliPanelField ||
+						field instanceof SettingsPanelField
 							? field.getInnerInvalidFields()
 							: null;
 
 					if (innerErrors && innerErrors.length > 0) {
 						for (const inner of innerErrors) {
+							const settingsLocation =
+								'itemIndex' in inner && 'fieldKey' in inner
+									? {
+											itemIndex: inner.itemIndex as number,
+											fieldKey: inner.fieldKey as string,
+											optionIndex:
+												'optionIndex' in inner
+													? (inner.optionIndex as number | undefined)
+													: undefined,
+										}
+									: undefined;
 							errors.push({
 								pageIdx: page.Index,
 								blockIdx: block.Index,
 								fieldKey: field.key,
 								label: inner.label,
+								settingsLocation,
 							});
 						}
 						reportedAsError.add(field.key);
@@ -795,11 +855,25 @@ export class AppController {
 		const appendItem = (issue: ConfigIssue, isWarning: boolean) => {
 			const item = document.createElement('div');
 			item.className = isWarning ? 'error-item error-item--warning' : 'error-item';
-			const messageHtml = isWarning ? `${warningIcon}<span>${issue.label}</span>` : issue.label;
-			item.innerHTML = `
-				<span class="error-location">Стр. ${issue.pageIdx} · Блок ${issue.blockIdx}</span>
-				<span class="error-message">${messageHtml}</span>
-			`;
+
+			const location = document.createElement('span');
+			location.className = 'error-location';
+			location.textContent = `Стр. ${issue.pageIdx} · Блок ${issue.blockIdx}`;
+
+			const message = document.createElement('span');
+			message.className = 'error-message';
+			if (isWarning) {
+				const iconHolder = document.createElement('span');
+				iconHolder.innerHTML = warningIcon;
+				if (iconHolder.firstElementChild)
+					message.appendChild(iconHolder.firstElementChild);
+				const label = document.createElement('span');
+				label.textContent = issue.label;
+				message.appendChild(label);
+			} else {
+				message.textContent = issue.label;
+			}
+			item.append(location, message);
 			item.addEventListener('click', () => {
 				const page = pageManager.Pages.find(p => p.Index === issue.pageIdx);
 				const block = page?.Blocks.find(b => b.Index === issue.blockIdx);
@@ -807,8 +881,22 @@ export class AppController {
 					eventManager.emit('blockSelect', block);
 					if (issue.fieldKey) {
 						setTimeout(() => {
-							const fieldEl = document.querySelector(`[data-key="${issue.fieldKey}"]`) as HTMLElement
-								?? document.getElementById(issue.fieldKey) as HTMLElement;
+							const modelField = block.UI.getFields().get(issue.fieldKey);
+							const inner = issue.settingsLocation;
+							const focused =
+								inner && modelField instanceof SettingsPanelField
+									? modelField.focusIssue(
+											inner.itemIndex,
+											inner.fieldKey,
+											inner.optionIndex,
+										)
+									: null;
+							const fieldEl =
+								focused ??
+								(document.querySelector(
+									`[data-key="${issue.fieldKey}"]`,
+								) as HTMLElement) ??
+								(document.getElementById(issue.fieldKey) as HTMLElement);
 							if (fieldEl) {
 								fieldEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 								fieldEl.classList.add('field--highlight');
@@ -839,10 +927,11 @@ export class AppController {
 
 			// Выбираем страницу + якорь. Поле ищем сперва в варианте (если выбран),
 			// потом в устройстве — базовое поле документируется на странице блока.
-			let url = DOCS_URLS._default;
+			let url =
+				fieldKey === 'settings' ? SETTINGS_DOCS_URL : DOCS_URLS._default;
 			let anchor: string | undefined;
 			const candidates: (string | undefined)[] = [b?.DeviceVariant ?? undefined, b?.Device ?? undefined];
-			if (fieldKey) {
+			if (fieldKey && fieldKey !== 'settings') {
 				for (const key of candidates) {
 					if (!key) continue;
 					const pageAnchors = FIELD_ANCHORS[key];
@@ -853,7 +942,7 @@ export class AppController {
 					}
 				}
 			}
-			if (!anchor) {
+			if (!anchor && fieldKey !== 'settings') {
 				// Якорь не нашёлся — открываем обычную страницу блока/варианта.
 				if (b?.DeviceVariant && DOCS_URLS[b.DeviceVariant]) url = DOCS_URLS[b.DeviceVariant];
 				else if (b?.Device && DOCS_URLS[b.Device]) url = DOCS_URLS[b.Device];

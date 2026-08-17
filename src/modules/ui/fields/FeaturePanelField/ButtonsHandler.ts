@@ -31,12 +31,10 @@ export default class ButtonsHandler {
 			showToast('Выберите вкладку для сохранения.', { type: 'warning' });
 			return;
 		}
-		if (!this.UI.SelectedTab.validateFields()) {
+		if (!this.UI.SelectedTab.save()) {
 			showToast('Проверьте поля выбранной вкладки.', { type: 'warning' });
 			return;
 		}
-
-		this.UI.SelectedTab.save();
 		dirtyStateManager.markDirty();
 	}
 
@@ -74,9 +72,11 @@ export default class ButtonsHandler {
 		if (
 			featureSettings.minOrEmpty &&
 			this.UI.Tabs.length <= featureSettings.minCount
-		)
-			this.UI.Tabs.splice(0);
-		else this.UI.Tabs.splice(index, 1);
+		) {
+			this.UI.Tabs.splice(0).forEach(tab => tab.dispose());
+		} else {
+			this.UI.Tabs.splice(index, 1)[0]?.dispose();
+		}
 
 		this.UI.SelectedTab = this.UI.Tabs[0];
 		this.UI.refreshUI();
@@ -87,6 +87,7 @@ export default class ButtonsHandler {
 		switch (this.UI.feature) {
 			case Feature.modes:
 			case Feature.fan_mode:
+			case Feature.fan_mode_extended:
 				return 'Режим';
 			case Feature.sensors:
 				return 'Датчик';

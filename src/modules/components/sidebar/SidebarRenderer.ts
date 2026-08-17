@@ -661,6 +661,7 @@ export class SiderbarRenderer {
 		}
 
 		BlockManager.SelectedBlock = savedBlock;
+		block.UI.clearFields();
 		dirtyStateManager.markDirty();
 		App.Controller.render();
 		showToast('JSON блока сохранен.', { type: 'success' });
@@ -673,6 +674,7 @@ export class SiderbarRenderer {
 		for (const serializedBlock of serializedPage.blocks) {
 			const savedBlock = this.insertBlockFromJson(page, serializedBlock, page.Blocks.length);
 			if (!savedBlock) {
+				page.Blocks.forEach(block => block.UI.clearFields());
 				page.Blocks.splice(0, page.Blocks.length, ...previousBlocks);
 				page.Blocks.forEach((b, i) => {
 					b.PrimaryPage = page;
@@ -682,6 +684,7 @@ export class SiderbarRenderer {
 				return;
 			}
 		}
+		previousBlocks.forEach(block => block.UI.clearFields());
 
 		BlockManager.SelectedBlock = page.Blocks[0] ?? null;
 		dirtyStateManager.markDirty();

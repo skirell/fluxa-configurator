@@ -6,6 +6,7 @@ export enum Device {
 	sensor = 'sensor',
 	switch = 'switch',
 	music = 'music',
+	device = 'device',
 }
 
 export enum DeviceVariant {
@@ -15,6 +16,7 @@ export enum DeviceVariant {
 	light_variant_temperature = 'light_variant_temperature',
 
 	climate_variant_cond = 'climate_variant_cond',
+	climate_variant_cond_extended = 'climate_variant_cond_extended',
 	climate_variant_thermostat = 'climate_variant_thermostat',
 
 	cover_variant_slider = 'cover_variant_slider',

@@ -18,7 +18,9 @@ export class NumberField<T> extends BaseField {
 		return this.rootElement;
 	}
 
-	public getValue(): number {
-		return Number(this.inputElement.value);
+	public getValue(): number | null {
+		return this.inputElement.value === ''
+			? null
+			: this.inputElement.valueAsNumber;
 	}
 }

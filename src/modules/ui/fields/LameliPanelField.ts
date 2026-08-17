@@ -190,7 +190,7 @@ export class LameliPanelField extends BaseField<Record<string, any> | null> {
 		if (!this.fieldsContainer) return;
 
 		this.fieldsContainer.innerHTML = '';
-		this.fields.clear();
+		this.clearFields();
 
 		const addButton = this.rootElement?.querySelector(
 			`[data-lameli-button="add"]`,
@@ -256,6 +256,12 @@ export class LameliPanelField extends BaseField<Record<string, any> | null> {
 	}
 
 	private clearFields(): void {
+		this.fields.forEach(field => field.dispose());
 		this.fields.clear();
+	}
+
+	public dispose(): void {
+		this.clearFields();
+		super.dispose();
 	}
 }

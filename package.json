@@ -1,6 +1,6 @@
 {
 	"name": "skirell-panel-fluxa-configurator",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Desktop configurator for Skirell Fluxa control panel JSON files.",
 	"author": "Skirell",
 	"license": "UNLICENSED",
@@ -10,6 +10,7 @@
 		"convert:ts": "tsc",
 		"convert:assets": "npm run copy-assets",
 		"convert": "npm run convert:ts && npm run convert:assets",
+		"test": "npm run convert:ts && node --test tests/*.test.js",
 		"copy-assets": "cpx \"src/assets/**/*\" out/assets/ && cpx \"src/core/html/**/*\" out/core/html/ && cpx \"src/core/css/**/*\" out/core/css/ && cpx \"icons/**/*\" out/icons",
 		"start": "electron .",
 		"build": "npm run convert && electron-builder",

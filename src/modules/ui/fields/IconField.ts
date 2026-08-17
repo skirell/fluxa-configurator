@@ -30,6 +30,14 @@ export class IconField<T> extends BaseField {
 	private isOpen = false;
 	private columns = 1;
 	private resizeObserver?: ResizeObserver;
+	private readonly outsideClickHandler = (event: MouseEvent): void => {
+		if (
+			this.isOpen &&
+			this.rootElement &&
+			!this.rootElement.contains(event.target as Node)
+		)
+			this.closeDropdown();
+	};
 
 	private readonly cellSize = 36;
 	private readonly gap = 4;
@@ -61,9 +69,7 @@ export class IconField<T> extends BaseField {
 		this.inputElement = input;
 		this.updateInputTextMode(input, input.value);
 
-		document.addEventListener('click', e => {
-			if (this.isOpen && !wrapper.contains(e.target as Node)) this.closeDropdown();
-		});
+		document.addEventListener('click', this.outsideClickHandler);
 
 		// Пересчитываем количество колонок при изменении ширины dropdown'а
 		// (например, когда пользователь меняет ширину правой панели).
@@ -76,6 +82,14 @@ export class IconField<T> extends BaseField {
 		}
 
 		return wrapper;
+	}
+
+	public dispose(): void {
+		document.removeEventListener('click', this.outsideClickHandler);
+		this.resizeObserver?.disconnect();
+		this.resizeObserver = undefined;
+		this.closeDropdown();
+		super.dispose();
 	}
 
 	private buildDropdown(): HTMLDivElement {
