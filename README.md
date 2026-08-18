@@ -105,6 +105,7 @@ npm run build:mac
 - `src/core/` - Electron main/renderer и базовые HTML/CSS файлы;
 - `src/modules/` - UI-компоненты, поля, менеджеры и логика приложения;
 - `src/data/` - настройки полей, enum-значения и константы;
+- `documentation/project-memory/` - архитектура, формат JSON, инструкции разработки и карта ресурсов;
 - `icons/` - иконки приложения для сборки;
 - `out/` - скомпилированные файлы, не хранится в git;
 - `dist/` - production-артефакты сборки, не хранится в git.

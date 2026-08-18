@@ -1,3 +1,6 @@
 # Documentation
 
-Project-level setup, build, and release notes live in the root `README.md`.
+- Пользовательская установка и краткие команды: [`../README.md`](../README.md).
+- Постоянная архитектурная память, инструкции и карта ресурсов: [`project-memory/README.md`](project-memory/README.md).
+
+Начинать техническую работу следует с `project-memory/README.md`: он направляет к профильным документам и фиксирует дату последнего полного аудита.
