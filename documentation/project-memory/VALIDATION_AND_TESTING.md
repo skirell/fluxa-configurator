@@ -109,4 +109,4 @@ npm test
 
 ## Baseline аудита
 
-На 2026-08-18 `node` и `npm` отсутствовали в доступном окружении, поэтому suite, compiler, Electron и packaging не запускались. Статические проверки файлов и `git diff --check` не заменяют runtime-test.
+После добавления прямой зависимости `typescript@6.0.3` команды `npm run convert` и `npm test` прошли: выполнены все 9 тестов единственного suite. Electron startup smoke-test также прошёл; packaging по-прежнему не проверялся.

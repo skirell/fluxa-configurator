@@ -270,6 +270,7 @@ export class SettingsPanelField extends BaseField<SettingRecord[]> {
 			select,
 			id,
 			true,
+			item.data.type,
 		);
 	}
 
@@ -437,6 +438,7 @@ export class SettingsPanelField extends BaseField<SettingRecord[]> {
 		input: HTMLElement,
 		htmlFor: string,
 		required: boolean,
+		settingType: unknown = null,
 	): HTMLDivElement {
 		const wrapper = document.createElement('div');
 		wrapper.classList.add('field-container');
@@ -449,8 +451,32 @@ export class SettingsPanelField extends BaseField<SettingRecord[]> {
 			star.classList.add(SpanClass.REQUIRED);
 			label.appendChild(star);
 		}
+		if (settingType !== null) this.appendDocsHelpButton(label, settingType);
 		wrapper.append(label, input);
 		return wrapper;
+	}
+
+	private appendDocsHelpButton(
+		label: HTMLLabelElement,
+		settingType: unknown,
+	): void {
+		const helpButton = document.createElement('button');
+		helpButton.type = 'button';
+		helpButton.className = 'field-help-btn';
+		helpButton.title = 'Показать документацию';
+		helpButton.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1"/><path d="M4.5 4.5a1.5 1.5 0 0 1 2.83.7c0 1-1.33 1.15-1.33 2.3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="6" cy="9" r="0.5" fill="currentColor"/></svg>';
+		helpButton.addEventListener('click', event => {
+			event.preventDefault();
+			event.stopPropagation();
+			const settingsType = SETTING_TYPE_OPTIONS.has(settingType as SettingType)
+				? (settingType as SettingType)
+				: undefined;
+			EventManager.emit('showFieldDocs', {
+				fieldKey: this.key,
+				settingsType,
+			});
+		});
+		label.appendChild(helpButton);
 	}
 
 	private setFieldData(

@@ -46,12 +46,10 @@ UI SVG в основном встроены inline в HTML/TypeScript; стре�
 - продукт: `https://skirell.ru/service/fluxa/`;
 - документация: `https://docs-fluxa.skirell.ru/`;
 - configurator docs: `https://docs-fluxa.skirell.ru/latest/nastroiki-paneli/konfiguraciya-interfeisa/skirell-konfigurator/`;
-- общий JSON: `https://docs-fluxa.skirell.ru/latest/konfiguraciya-paneli/obshaya-struktura-json/`.
+- общий JSON: `https://docs-fluxa.skirell.ru/latest/konfiguraciya-paneli/obshaya-struktura-json/`;
+- дополнительные настройки: `https://docs-fluxa.skirell.ru/latest/konfiguraciya-paneli/dopolnitelnye-nastroiki/`.
 
-`AppController.ts` содержит фактический catalog device/variant URL и anchors. Base URLs:
-
-- `https://docs-fluxa.skirell.ru/latest`;
-- `https://docs-fluxa.skirell.ru/beta` для universal device, extended climate и additional settings.
+`AppController.ts` содержит фактический catalog device/variant URL и anchors. Все runtime-ссылки используют base URL `https://docs-fluxa.skirell.ru/latest`. Для элементов `settings` заданы отдельные anchors типов `pushbutton`, `switch`, `text`, `text_read_only`, `enum` и `range`.
 
 HTML загружает Inter с `fonts.googleapis.com`/`fonts.gstatic.com`. Без сети применяется системный font fallback; docs webview показывает собственный offline fallback.
 

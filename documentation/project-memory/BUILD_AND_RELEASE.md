@@ -45,7 +45,7 @@ CI, release workflow, signing/notarization, publish config и auto-update сей
 
 ## Требующие внимания детали
 
-- `typescript` и `rimraf` вызываются npm scripts, но не объявлены прямыми `devDependencies`; они присутствуют только транзитивно/peer-resolved в текущем lockfile. То же относится к executable ESLint/Prettier. Чистая воспроизводимость требует отдельной проверки.
+- `typescript` объявлен прямой `devDependency`. `rimraf` всё ещё вызывается скриптом `clean`, но присутствует только транзитивно; то же относится к executable ESLint/Prettier. Чистая воспроизводимость этих команд требует отдельной проверки.
 - `package.json.engines` отсутствует, хотя README требует Node 22+.
 - Source maps включены, а `out/**/*` упаковывается целиком; `.js.map` вероятно попадут в `asar`.
 - В `main.ts` runtime icon base вычисляется как `../../icons` относительно `out/core/main.js`, тогда как copied icons находятся в `out/icons`. Development checkout может скрывать проблему наличием root `icons`; packaged runtime нужно проверить и при необходимости исправить путь.

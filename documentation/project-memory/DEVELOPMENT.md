@@ -39,6 +39,12 @@ npm start
 
 Hot reload/watch script отсутствует; после изменения исходников нужна повторная компиляция.
 
+Если Electron падает на `app.whenReady()` с сообщением, что `app` равен `undefined`, проверь переменную `ELECTRON_RUN_AS_NODE`. Она переводит Electron в режим обычного Node-процесса. Для разового запуска в Linux/macOS:
+
+```bash
+env -u ELECTRON_RUN_AS_NODE npm start
+```
+
 ## Стиль
 
 `.prettierrc.json` задаёт tabs, width 85, single quotes, semicolons, trailing commas и LF. `.eslintrc.json` использует legacy config с TypeScript/Prettier plugins, но npm scripts для lint/format отсутствуют.

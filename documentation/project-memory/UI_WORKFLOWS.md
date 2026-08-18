@@ -91,9 +91,9 @@ Docs и errors можно объединять во вкладки или раз
 
 Docs загружается через Electron `<webview>`:
 
-- обычные devices/variants — `/latest`;
-- `device`, `climate_variant_cond_extended`, `settings` — `/beta`;
+- все devices, variants и дополнительные настройки — `/latest`;
 - help-кнопка выбирает URL и `#anchor` по hard-coded maps в `AppController.ts`;
+- help-кнопка рядом с выбором типа внутри `settings` ведёт к разделу выбранного типа: `pushbutton`, `switch`, `text`, `text_read_only`, `enum` или `range`; отдельные поля типа не дублируют одну и ту же ссылку;
 - при network fail показывается fallback и Retry.
 
 Ссылка документации на home открывается во внешнем браузере через `shell.openExternal()`.

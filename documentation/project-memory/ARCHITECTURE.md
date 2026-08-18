@@ -84,7 +84,7 @@ src/data/settings/* + src/utils/*
 | `deviceChanged` | BlockRenderer | dirty, sidebar/errors refresh |
 | `deviceVariantChanged` | BlockRenderer | dirty, sidebar/errors refresh |
 | `fieldChanged` | BaseField/SettingsPanelField | dirty и errors refresh |
-| `showFieldDocs` | help-кнопки полей | открыть docs panel и перейти к URL/anchor |
+| `showFieldDocs` | help-кнопки полей | открыть docs panel и перейти к URL/anchor; для `settings` payload может содержать выбранный `settingsType` |
 
 Слушатель `pageAdded` помечает dirty, поэтому после `ConfigManager.applyConfig()` менеджер явно вызывает `markClean()`.
 

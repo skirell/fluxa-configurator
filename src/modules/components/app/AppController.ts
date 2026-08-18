@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { CHANNELS } from '../../../data/constants/channels';
 import { PLACEHOLDERS } from '../../../data/constants/placeholders';
+import { SettingType } from '../../../data/enums/setting';
 import { ViewId } from '../../../data/enums/view-id';
 import { getBlockIssues } from '../../../data/settings/block-rules';
 import { showChoice, showConfirm, showToast } from '../../../utils/alert-utils';
@@ -21,11 +22,17 @@ import { AppView } from './AppView';
 interface PanelDef { id: string; title: string; contentHtml: string; }
 const DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru/latest';
 const docsUrl = (path: string): string => `${DOCS_BASE_URL}/${path}/`;
-const BETA_DOCS_BASE_URL = 'https://docs-fluxa.skirell.ru/beta';
-const betaDocsUrl = (path: string): string => `${BETA_DOCS_BASE_URL}/${path}/`;
-const SETTINGS_DOCS_URL = betaDocsUrl(
+const SETTINGS_DOCS_URL = docsUrl(
 	'konfiguraciya-paneli/dopolnitelnye-nastroiki',
 );
+const SETTINGS_DOCS_ANCHORS: Readonly<Record<SettingType, string>> = {
+	[SettingType.pushbutton]: 'pushbutton',
+	[SettingType.switch]: 'switch',
+	[SettingType.text]: 'text',
+	[SettingType.text_read_only]: 'text_read_only',
+	[SettingType.enum]: 'enum',
+	[SettingType.range]: 'range',
+};
 const PANELS: Record<string, PanelDef> = {
 	docs: { id: 'docs', title: 'Документация',
 		contentHtml: `
@@ -53,7 +60,7 @@ const DOCS_URLS: Record<string, string> = {
 	cover: docsUrl('konfiguraciya-paneli/cover-shtory'),
 	climate: docsUrl('konfiguraciya-paneli/climate-klimat'),
 	music: docsUrl('konfiguraciya-paneli/music-muzyka'),
-	device: betaDocsUrl('konfiguraciya-paneli/device-universalnoe-ustroistvo'),
+	device: docsUrl('konfiguraciya-paneli/device-universalnoe-ustroistvo'),
 	light_variant_OnOff: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_onoff'),
 	light_variant_dimmer: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_dimmer'),
 	light_variant_color: docsUrl('konfiguraciya-paneli/light-osveshenie/light_variant_color'),
@@ -61,7 +68,7 @@ const DOCS_URLS: Record<string, string> = {
 	cover_variant_slider: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_slider'),
 	cover_variant_buttons: docsUrl('konfiguraciya-paneli/cover-shtory/cover_variant_buttons'),
 	climate_variant_cond: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond'),
-	climate_variant_cond_extended: betaDocsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond_extended'),
+	climate_variant_cond_extended: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_cond_extended'),
 	climate_variant_thermostat: docsUrl('konfiguraciya-paneli/climate-klimat/climate_variant_thermostat'),
 	_default: docsUrl('konfiguraciya-paneli/obshaya-struktura-json'),
 };
@@ -166,10 +173,10 @@ const FIELD_ANCHORS: Record<string, Record<string, string>> = {
 		payload_stop: 'payload_stop',
 		position_command_topic: 'position_command_topic',
 		position_state_topic: 'position_state_topic',
-		position_open: 'position_open',
-		position_close: 'position_open',
-		help_position_open: 'help_position_open',
-		help_position_close: 'help_position_open',
+		position_open: 'position_open-position_close',
+		position_close: 'position_open-position_close',
+		help_position_open: 'help_position_open-help_position_close',
+		help_position_close: 'help_position_open-help_position_close',
 		lameli: 'lameli',
 	},
 	cover_variant_buttons: {
@@ -224,10 +231,10 @@ const FIELD_ANCHORS: Record<string, Record<string, string>> = {
 		param_3: 'param_3',
 		icon: 'icon',
 		setting_name: 'setting_name',
-		mute_command_topic: 'mute_command_topic',
-		mute_state_topic: 'mute_state_topic',
-		payload_mute_on: 'payload_mute_on',
-		payload_mute_off: 'payload_mute_off',
+		mute_command_topic: 'mute_command_topic-mute',
+		mute_state_topic: 'mute_state_topic-mute',
+		payload_mute_on: 'payload_mute_on-mute',
+		payload_mute_off: 'payload_mute_off-mute',
 		artist_state_topic: 'artist_state_topic',
 		name_state_topic: 'name_state_topic',
 		channels: 'channels',
@@ -278,6 +285,7 @@ const FIELD_ANCHORS: Record<string, Record<string, string>> = {
 
 type Dir = 'col' | 'row';
 interface Section { tabs: string[]; activeTab: string; }
+interface FieldDocsTarget { fieldKey: string; settingsType?: SettingType; }
 type ConfigIssue = {
 	pageIdx: number;
 	blockIdx: number;
@@ -303,9 +311,9 @@ export class AppController {
 	private lastErrorsSignature: string | null = null;
 	// Область отображения ошибок: 'all' — по всем блокам, 'current' — только по выбранному блоку.
 	private errorsScope: 'all' | 'current' = 'current';
-	// Ключ поля, для которого только что открыли документацию (через «?»).
+	// Поле, для которого только что открыли документацию (через «?»).
 	// navigateDocs использует его для подстановки #anchor к URL; после применения сбрасывается.
-	private pendingDocsFieldKey: string | null = null;
+	private pendingDocsTarget: FieldDocsTarget | null = null;
 
 	constructor(private readonly view: AppView) {
 		this.BlockController = new BlockController();
@@ -382,9 +390,19 @@ export class AppController {
 		eventManager.on('deviceChanged', () => { dirtyStateManager.markDirty(); this.SidebarController.Renderer.render(); this.refreshErrors(); });
 		eventManager.on('deviceVariantChanged', () => { dirtyStateManager.markDirty(); this.SidebarController.Renderer.render(); this.refreshErrors(); });
 		eventManager.on('fieldChanged', () => { dirtyStateManager.markDirty(); this.refreshErrors(); });
-		eventManager.on('showFieldDocs', (fieldKey: string) => {
-			this.pendingDocsFieldKey = fieldKey;
-			this.openPanel('docs');
+		eventManager.on<string | FieldDocsTarget>('showFieldDocs', target => {
+			this.pendingDocsTarget =
+				typeof target === 'string' ? { fieldKey: target } : target;
+			const sectionIndex = this.findSection('docs');
+			if (sectionIndex < 0) {
+				this.openPanel('docs');
+				return;
+			}
+
+			if (this.sections[sectionIndex].activeTab !== 'docs') {
+				this.sections[sectionIndex].activeTab = 'docs';
+				this.redraw();
+			}
 			this.navigateDocs();
 		});
 		this.view.elements.saveConfigButton.addEventListener('click', () => this.handleSave());
@@ -918,8 +936,9 @@ export class AppController {
 	}
 
 	private navigateDocs(): void {
-		const fieldKey = this.pendingDocsFieldKey;
-		this.pendingDocsFieldKey = null;
+		const docsTarget = this.pendingDocsTarget;
+		const fieldKey = docsTarget?.fieldKey ?? null;
+		this.pendingDocsTarget = null;
 		setTimeout(() => {
 			const wv = document.getElementById('docs-webview') as any;
 			if (!wv) return;
@@ -929,7 +948,12 @@ export class AppController {
 			// потом в устройстве — базовое поле документируется на странице блока.
 			let url =
 				fieldKey === 'settings' ? SETTINGS_DOCS_URL : DOCS_URLS._default;
-			let anchor: string | undefined;
+			let anchor =
+				fieldKey === 'settings'
+					? docsTarget?.settingsType
+						? SETTINGS_DOCS_ANCHORS[docsTarget.settingsType]
+						: 'settings'
+					: undefined;
 			const candidates: (string | undefined)[] = [b?.DeviceVariant ?? undefined, b?.Device ?? undefined];
 			if (fieldKey && fieldKey !== 'settings') {
 				for (const key of candidates) {
